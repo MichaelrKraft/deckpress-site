@@ -30,6 +30,8 @@ export type SlideType =
   | 'ask'
   | 'qa-chat'
   | 'appendix'
+  | 'video'
+  | 'intro-video'
 
 export interface SlideContent {
   id: number
@@ -46,6 +48,31 @@ export interface SlideContent {
     }>
     callout?: string
     nextSteps?: string[]
+    icons?: Record<string, {
+      name: string
+      color?: string
+      size?: string
+    }>
+    graphics?: Record<string, {
+      type: 'image' | 'shape' | 'placeholder'
+      src?: string
+      alt?: string
+      shape?: string
+      color?: string
+      size?: string
+      opacity?: number
+      rotation?: number
+      borderRadius?: string
+      filter?: string
+    }>
+    video?: {
+      url?: string
+      blob?: Blob
+      thumbnail?: string
+      duration?: number
+      title?: string
+      description?: string
+    }
   }
 }
 

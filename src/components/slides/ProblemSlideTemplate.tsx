@@ -8,6 +8,8 @@ import { AnimatedList } from './AnimatedList'
 import { MetricCard } from './MetricCard'
 import { EditableText } from '@/components/ui/EditableText'
 import { EditableList } from '@/components/ui/EditableList'
+import { EditableIcon } from '@/components/ui/EditableIcon'
+import { EditableGraphics } from '@/components/ui/EditableGraphics'
 
 interface ProblemSlideTemplateProps {
   slide: SlideContent
@@ -28,6 +30,39 @@ export function ProblemSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove 
       content: {
         ...content,
         [field]: newValue
+      }
+    }
+    onUpdateSlide(updatedSlide)
+  }
+
+  // Update handlers for icons and graphics
+  const updateSlideIcon = (iconField: string, iconName: string, iconColor?: string, iconSize?: string) => {
+    if (!onUpdateSlide) return
+    
+    const updatedSlide = {
+      ...slide,
+      content: {
+        ...content,
+        icons: {
+          ...content.icons,
+          [iconField]: { name: iconName, color: iconColor, size: iconSize }
+        }
+      }
+    }
+    onUpdateSlide(updatedSlide)
+  }
+
+  const updateSlideGraphics = (graphicsField: string, graphics: any) => {
+    if (!onUpdateSlide) return
+    
+    const updatedSlide = {
+      ...slide,
+      content: {
+        ...content,
+        graphics: {
+          ...content.graphics,
+          [graphicsField]: graphics
+        }
       }
     }
     onUpdateSlide(updatedSlide)
@@ -90,7 +125,15 @@ export function ProblemSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove 
             animate={{ scale: 1 }}
             transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
           >
-            <AlertTriangle className="w-6 h-6 text-red-400" />
+            <EditableIcon
+              iconName={content.icons?.headerIcon?.name || 'AlertTriangle'}
+              iconColor={content.icons?.headerIcon?.color || 'text-red-400'}
+              iconSize={content.icons?.headerIcon?.size || 'w-6 h-6'}
+              onChange={(iconName, iconColor, iconSize) => 
+                updateSlideIcon('headerIcon', iconName, iconColor, iconSize)
+              }
+              onAiImprove={(context) => onAiImprove?.(context, 'headerIcon')}
+            />
             <span className="text-red-300 font-semibold text-lg">The Problem</span>
           </motion.div>
 
@@ -138,7 +181,15 @@ export function ProblemSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove 
             viewport={{ once: true }}
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-              <TrendingDown className="w-6 h-6 text-red-400" />
+              <EditableIcon
+                iconName={content.icons?.challengesIcon?.name || 'TrendingDown'}
+                iconColor={content.icons?.challengesIcon?.color || 'text-red-400'}
+                iconSize={content.icons?.challengesIcon?.size || 'w-6 h-6'}
+                onChange={(iconName, iconColor, iconSize) => 
+                  updateSlideIcon('challengesIcon', iconName, iconColor, iconSize)
+                }
+                onAiImprove={(context) => onAiImprove?.(context, 'challengesIcon')}
+              />
               Key Challenges
             </h3>
             <EditableList
@@ -162,7 +213,15 @@ export function ProblemSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove 
             {content.metrics && content.metrics.length > 0 ? (
               <div className="space-y-4">
                 <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                  <DollarSign className="w-6 h-6 text-orange-400" />
+                  <EditableIcon
+                    iconName={content.icons?.impactIcon?.name || 'DollarSign'}
+                    iconColor={content.icons?.impactIcon?.color || 'text-orange-400'}
+                    iconSize={content.icons?.impactIcon?.size || 'w-6 h-6'}
+                    onChange={(iconName, iconColor, iconSize) => 
+                      updateSlideIcon('impactIcon', iconName, iconColor, iconSize)
+                    }
+                    onAiImprove={(context) => onAiImprove?.(context, 'impactIcon')}
+                  />
                   Impact Scale
                 </h3>
                 {content.metrics.map((metric, index) => (
@@ -181,7 +240,15 @@ export function ProblemSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove 
             ) : (
               <div className="glass-card p-8 rounded-2xl">
                 <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
-                  <Users className="w-6 h-6 text-orange-400" />
+                  <EditableIcon
+                    iconName={content.icons?.affectedIcon?.name || 'Users'}
+                    iconColor={content.icons?.affectedIcon?.color || 'text-orange-400'}
+                    iconSize={content.icons?.affectedIcon?.size || 'w-6 h-6'}
+                    onChange={(iconName, iconColor, iconSize) => 
+                      updateSlideIcon('affectedIcon', iconName, iconColor, iconSize)
+                    }
+                    onAiImprove={(context) => onAiImprove?.(context, 'affectedIcon')}
+                  />
                   Who&apos;s Affected
                 </h3>
                 <EditableText
@@ -198,6 +265,60 @@ export function ProblemSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove 
             )}
           </motion.div>
         </div>
+
+        {/* Visual Graphics Section */}
+        <motion.div
+          className="mt-8 grid md:grid-cols-3 gap-6"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 1.2 }}
+          viewport={{ once: true }}
+        >
+          <div className="glass-card p-6 rounded-2xl text-center">
+            <EditableGraphics
+              graphics={content.graphics?.problemVisualization || {
+                type: 'placeholder',
+                size: 'w-24 h-24',
+                opacity: 0.5
+              }}
+              onChange={(graphics) => updateSlideGraphics('problemVisualization', graphics)}
+              className="mx-auto mb-4"
+              onAiImprove={(context) => onAiImprove?.(context, 'problemVisualization')}
+            />
+            <h4 className="text-white font-semibold mb-2">Problem Visualization</h4>
+            <p className="text-white/60 text-sm">Add an image or graphic to illustrate the problem</p>
+          </div>
+
+          <div className="glass-card p-6 rounded-2xl text-center">
+            <EditableGraphics
+              graphics={content.graphics?.impactChart || {
+                type: 'placeholder',
+                size: 'w-24 h-24',
+                opacity: 0.5
+              }}
+              onChange={(graphics) => updateSlideGraphics('impactChart', graphics)}
+              className="mx-auto mb-4"
+              onAiImprove={(context) => onAiImprove?.(context, 'impactChart')}
+            />
+            <h4 className="text-white font-semibold mb-2">Impact Data</h4>
+            <p className="text-white/60 text-sm">Upload charts or graphs showing the problem&apos;s impact</p>
+          </div>
+
+          <div className="glass-card p-6 rounded-2xl text-center">
+            <EditableGraphics
+              graphics={content.graphics?.stakeholderImage || {
+                type: 'placeholder',
+                size: 'w-24 h-24',
+                opacity: 0.5
+              }}
+              onChange={(graphics) => updateSlideGraphics('stakeholderImage', graphics)}
+              className="mx-auto mb-4"
+              onAiImprove={(context) => onAiImprove?.(context, 'stakeholderImage')}
+            />
+            <h4 className="text-white font-semibold mb-2">Stakeholders</h4>
+            <p className="text-white/60 text-sm">Show who is affected by this problem</p>
+          </div>
+        </motion.div>
 
         {/* Callout */}
         <motion.div

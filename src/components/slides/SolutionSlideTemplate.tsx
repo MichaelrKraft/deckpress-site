@@ -8,6 +8,8 @@ import { AnimatedList } from './AnimatedList'
 import { MetricCard } from './MetricCard'
 import { EditableText } from '@/components/ui/EditableText'
 import { EditableList } from '@/components/ui/EditableList'
+import { EditableIcon } from '@/components/ui/EditableIcon'
+import { EditableGraphics } from '@/components/ui/EditableGraphics'
 
 interface SolutionSlideTemplateProps {
   slide: SlideContent
@@ -28,6 +30,39 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
       content: {
         ...content,
         [field]: newValue
+      }
+    }
+    onUpdateSlide(updatedSlide)
+  }
+
+  // Update handlers for icons and graphics
+  const updateSlideIcon = (iconField: string, iconName: string, iconColor?: string, iconSize?: string) => {
+    if (!onUpdateSlide) return
+    
+    const updatedSlide = {
+      ...slide,
+      content: {
+        ...content,
+        icons: {
+          ...content.icons,
+          [iconField]: { name: iconName, color: iconColor, size: iconSize }
+        }
+      }
+    }
+    onUpdateSlide(updatedSlide)
+  }
+
+  const updateSlideGraphics = (graphicsField: string, graphics: any) => {
+    if (!onUpdateSlide) return
+    
+    const updatedSlide = {
+      ...slide,
+      content: {
+        ...content,
+        graphics: {
+          ...content.graphics,
+          [graphicsField]: graphics
+        }
       }
     }
     onUpdateSlide(updatedSlide)
@@ -92,7 +127,15 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
             animate={{ scale: 1 }}
             transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
           >
-            <Lightbulb className="w-6 h-6 text-green-400" />
+            <EditableIcon
+              iconName={content.icons?.headerIcon?.name || 'Lightbulb'}
+              iconColor={content.icons?.headerIcon?.color || 'text-green-400'}
+              iconSize={content.icons?.headerIcon?.size || 'w-6 h-6'}
+              onChange={(iconName, iconColor, iconSize) => 
+                updateSlideIcon('headerIcon', iconName, iconColor, iconSize)
+              }
+              onAiImprove={(context) => onAiImprove?.(context, 'headerIcon')}
+            />
             <span className="text-green-300 font-semibold text-lg">Our Solution</span>
           </motion.div>
 
@@ -140,7 +183,15 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
             viewport={{ once: true }}
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-              <Rocket className="w-6 h-6 text-green-400" />
+              <EditableIcon
+                iconName={content.icons?.featuresIcon?.name || 'Rocket'}
+                iconColor={content.icons?.featuresIcon?.color || 'text-green-400'}
+                iconSize={content.icons?.featuresIcon?.size || 'w-6 h-6'}
+                onChange={(iconName, iconColor, iconSize) => 
+                  updateSlideIcon('featuresIcon', iconName, iconColor, iconSize)
+                }
+                onAiImprove={(context) => onAiImprove?.(context, 'featuresIcon')}
+              />
               Key Features
             </h3>
             <EditableList
@@ -164,7 +215,15 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
             {content.metrics && content.metrics.length > 0 ? (
               <div className="space-y-4">
                 <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                  <Zap className="w-6 h-6 text-emerald-400" />
+                  <EditableIcon
+                    iconName={content.icons?.impactIcon?.name || 'Zap'}
+                    iconColor={content.icons?.impactIcon?.color || 'text-emerald-400'}
+                    iconSize={content.icons?.impactIcon?.size || 'w-6 h-6'}
+                    onChange={(iconName, iconColor, iconSize) => 
+                      updateSlideIcon('impactIcon', iconName, iconColor, iconSize)
+                    }
+                    onAiImprove={(context) => onAiImprove?.(context, 'impactIcon')}
+                  />
                   Impact Results
                 </h3>
                 {content.metrics.map((metric, index) => (
@@ -183,7 +242,15 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
             ) : (
               <div className="glass-card p-8 rounded-2xl">
                 <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
-                  <Zap className="w-6 h-6 text-emerald-400" />
+                  <EditableIcon
+                    iconName={content.icons?.whyWorksIcon?.name || 'Zap'}
+                    iconColor={content.icons?.whyWorksIcon?.color || 'text-emerald-400'}
+                    iconSize={content.icons?.whyWorksIcon?.size || 'w-6 h-6'}
+                    onChange={(iconName, iconColor, iconSize) => 
+                      updateSlideIcon('whyWorksIcon', iconName, iconColor, iconSize)
+                    }
+                    onAiImprove={(context) => onAiImprove?.(context, 'whyWorksIcon')}
+                  />
                   Why It Works
                 </h3>
                 <EditableText
@@ -204,6 +271,45 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
             )}
           </motion.div>
         </div>
+
+        {/* Solution Graphics Section */}
+        <motion.div
+          className="mt-8 grid md:grid-cols-2 gap-6"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 1.2 }}
+          viewport={{ once: true }}
+        >
+          <div className="glass-card p-6 rounded-2xl text-center">
+            <EditableGraphics
+              graphics={content.graphics?.solutionDemo || {
+                type: 'placeholder',
+                size: 'w-32 h-32',
+                opacity: 0.5
+              }}
+              onChange={(graphics) => updateSlideGraphics('solutionDemo', graphics)}
+              className="mx-auto mb-4"
+              onAiImprove={(context) => onAiImprove?.(context, 'solutionDemo')}
+            />
+            <h4 className="text-white font-semibold mb-2">Solution Demo</h4>
+            <p className="text-white/60 text-sm">Show your solution in action with screenshots or diagrams</p>
+          </div>
+
+          <div className="glass-card p-6 rounded-2xl text-center">
+            <EditableGraphics
+              graphics={content.graphics?.benefitsChart || {
+                type: 'placeholder',
+                size: 'w-32 h-32',
+                opacity: 0.5
+              }}
+              onChange={(graphics) => updateSlideGraphics('benefitsChart', graphics)}
+              className="mx-auto mb-4"
+              onAiImprove={(context) => onAiImprove?.(context, 'benefitsChart')}
+            />
+            <h4 className="text-white font-semibold mb-2">Benefits Overview</h4>
+            <p className="text-white/60 text-sm">Illustrate the key benefits with visuals or infographics</p>
+          </div>
+        </motion.div>
 
         {/* Callout */}
         <motion.div

@@ -1,0 +1,651 @@
+"use client"
+
+import React, { useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Layout, Container } from '@/components/layout/Layout'
+import { Button } from '@/components/ui/Button'
+import { Card, CardContent } from '@/components/ui/Card'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { Badge } from '@/components/ui/Badge'
+import { GammaDeckViewer } from '@/components/deck/GammaDeckViewer'
+import { pdfExporter } from '@/lib/pdf-export'
+import { GeneratedDeck } from '@/lib/deck-generator'
+import { PitchDeckOutline, SlideContent } from '@/lib/openai'
+import { 
+  Sparkles, 
+  FileText, 
+  Upload, 
+  Wand2, 
+  ChevronRight,
+  ArrowLeft,
+  Brain,
+  Zap,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  Edit3,
+  Save,
+  X,
+  MessageSquare,
+  Send,
+  Target,
+  Lightbulb,
+  BarChart3,
+  Users,
+  Rocket,
+  TrendingUp,
+  DollarSign,
+  Award,
+  FileStack,
+  Settings,
+  Eye,
+  MoreHorizontal,
+  ArrowRight,
+  Plus,
+  RefreshCw
+} from 'lucide-react'
+import { GradientButton } from '@/components/ui/gradient-button'
+
+// Gamma-inspired creation modes
+const CREATION_MODES = [
+  {
+    id: 'generate',
+    title: 'Generate with AI',
+    description: 'Describe your business and let AI create your deck',
+    icon: Brain,
+    color: 'from-purple-500 to-blue-500',
+    recommended: true
+  },
+  {
+    id: 'paste',
+    title: 'Paste Content',
+    description: 'Paste your existing content and AI will format it',
+    icon: FileText,
+    color: 'from-blue-500 to-cyan-500'
+  },
+  {
+    id: 'import',
+    title: 'Import File',
+    description: 'Upload a document or presentation to transform',
+    icon: Upload,
+    color: 'from-cyan-500 to-green-500'
+  }
+]
+
+const THEMES = [
+  { id: 'modern', name: 'Modern', preview: 'bg-gradient-to-br from-slate-800 to-slate-900' },
+  { id: 'vibrant', name: 'Vibrant', preview: 'bg-gradient-to-br from-purple-600 to-pink-600' },
+  { id: 'minimal', name: 'Minimal', preview: 'bg-gradient-to-br from-gray-100 to-white' },
+  { id: 'corporate', name: 'Corporate', preview: 'bg-gradient-to-br from-blue-800 to-navy-900' },
+  { id: 'startup', name: 'Startup', preview: 'bg-gradient-to-br from-orange-500 to-red-600' },
+  { id: 'investor', name: 'Investor', preview: 'bg-gradient-to-br from-emerald-600 to-teal-700' }
+]
+
+export default function GammaBuilderPage() {
+  // Main flow state
+  const [currentStep, setCurrentStep] = useState(1)
+  const [selectedMode, setSelectedMode] = useState<string>('')
+  const [selectedTheme, setSelectedTheme] = useState('modern')
+  
+  // Content state
+  const [businessDescription, setBusinessDescription] = useState('')
+  const [industry, setIndustry] = useState('')
+  const [audience, setAudience] = useState('investors')
+  const [slideCount, setSlideCount] = useState(10)
+  const [pastedContent, setPastedContent] = useState('')
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  
+  // Generation state
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [outline, setOutline] = useState<PitchDeckOutline | null>(null)
+  const [generatedDeck, setGeneratedDeck] = useState<GeneratedDeck | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleModeSelect = (modeId: string) => {
+    setSelectedMode(modeId)
+    setCurrentStep(2)
+  }
+
+  const handleGenerateOutline = async () => {
+    if (!businessDescription.trim()) {
+      setError('Please describe your business')
+      return
+    }
+
+    setIsGenerating(true)
+    setError(null)
+
+    // Simulate API call for debugging
+    setTimeout(() => {
+      const mockOutline: PitchDeckOutline = {
+        totalSlides: 10,
+        slides: [
+          { id: 1, title: 'Problem', type: 'problem', contentSummary: 'The pain point your startup addresses' },
+          { id: 2, title: 'Solution', type: 'solution', contentSummary: 'Your unique approach to solving the problem' },
+          { id: 3, title: 'Market', type: 'market', contentSummary: 'Total addressable market and opportunity' },
+          { id: 4, title: 'Product', type: 'product', contentSummary: 'Your product features and benefits' },
+          { id: 5, title: 'Traction', type: 'traction', contentSummary: 'Customer validation and growth metrics' },
+          { id: 6, title: 'Business Model', type: 'business-model', contentSummary: 'Revenue streams and pricing strategy' },
+          { id: 7, title: 'Competition', type: 'market', contentSummary: 'Competitive landscape and differentiation' },
+          { id: 8, title: 'Team', type: 'team', contentSummary: 'Leadership and key team members' },
+          { id: 9, title: 'Financials', type: 'financials', contentSummary: 'Revenue projections and funding needs' },
+          { id: 10, title: 'Ask', type: 'ask', contentSummary: 'Funding request and use of funds' }
+        ]
+      }
+      setOutline(mockOutline)
+      setCurrentStep(3)
+      setIsGenerating(false)
+    }, 1000)
+  }
+
+  const handleGenerateDeck = async () => {
+    setIsGenerating(true)
+    setError(null)
+
+    // Simulate API call for debugging
+    setTimeout(() => {
+      const mockDeck: GeneratedDeck = {
+        id: 'mock-deck-1',
+        title: businessDescription.slice(0, 50) + '...' || 'My Startup Pitch',
+        theme: selectedTheme,
+        createdAt: new Date().toISOString(),
+        slides: [
+          {
+            id: 1,
+            title: 'Problem',
+            type: 'problem',
+            content: {
+              headline: 'The Problem We\'re Solving',
+              subheadline: 'A critical pain point in the market',
+              bullets: [
+                'Current solutions are ineffective',
+                'Users are frustrated with existing options',
+                'Market gap represents significant opportunity'
+              ],
+              callout: 'This problem affects millions of users daily'
+            }
+          },
+          {
+            id: 2,
+            title: 'Solution',
+            type: 'solution',
+            content: {
+              headline: 'Our Innovative Solution',
+              subheadline: 'Revolutionary approach to solving the problem',
+              bullets: [
+                'Unique technology that addresses root cause',
+                'User-friendly interface and experience',
+                'Scalable and cost-effective implementation'
+              ],
+              callout: 'We\'re the first to tackle this problem this way'
+            }
+          },
+          {
+            id: 3,
+            title: 'Market',
+            type: 'market',
+            content: {
+              headline: 'Massive Market Opportunity',
+              subheadline: 'Large and growing target market',
+              bullets: [
+                'Total addressable market: $10B+',
+                'Growing at 25% annually',
+                'Underserved customer segments'
+              ],
+              metrics: [
+                { label: 'Market Size', value: '$10B', context: 'Total addressable market' },
+                { label: 'Growth Rate', value: '25%', context: 'Year-over-year growth' },
+                { label: 'Target Customers', value: '100M', context: 'Potential customer base' }
+              ]
+            }
+          }
+        ],
+        context: {
+          topic: businessDescription,
+          industry: industry || 'Technology',
+          audience: audience,
+          slideCount
+        }
+      }
+      setGeneratedDeck(mockDeck)
+      setCurrentStep(5)
+      setIsGenerating(false)
+    }, 1000)
+  }
+
+  const handleUpdateSlide = useCallback((slideId: number, updatedSlide: SlideContent) => {
+    if (!generatedDeck) return
+    
+    const updatedSlides = generatedDeck.slides.map(slide => 
+      slide.id === slideId ? updatedSlide : slide
+    )
+    
+    setGeneratedDeck({
+      ...generatedDeck,
+      slides: updatedSlides
+    })
+  }, [generatedDeck])
+
+  const handleAddSlide = useCallback((position: number, slideType: string = 'default') => {
+    if (!generatedDeck) return
+    
+    const newSlide: SlideContent = {
+      id: Date.now(),
+      title: 'New Slide',
+      type: slideType as any,
+      content: {
+        headline: 'New Slide Headline',
+        bullets: ['Key point 1', 'Key point 2', 'Key point 3']
+      }
+    }
+    
+    const updatedSlides = [...generatedDeck.slides]
+    updatedSlides.splice(position, 0, newSlide)
+    
+    setGeneratedDeck({
+      ...generatedDeck,
+      slides: updatedSlides
+    })
+  }, [generatedDeck])
+
+  const handleDeleteSlide = useCallback((slideId: number) => {
+    if (!generatedDeck) return
+    
+    const updatedSlides = generatedDeck.slides.filter(slide => slide.id !== slideId)
+    
+    setGeneratedDeck({
+      ...generatedDeck,
+      slides: updatedSlides
+    })
+  }, [generatedDeck])
+
+  const handleDuplicateSlide = useCallback((slideId: number) => {
+    if (!generatedDeck) return
+    
+    const slideToClone = generatedDeck.slides.find(slide => slide.id === slideId)
+    if (!slideToClone) return
+    
+    const duplicatedSlide: SlideContent = {
+      ...slideToClone,
+      id: Date.now(),
+      title: `${slideToClone.title} (Copy)`
+    }
+    
+    const slideIndex = generatedDeck.slides.findIndex(slide => slide.id === slideId)
+    const updatedSlides = [...generatedDeck.slides]
+    updatedSlides.splice(slideIndex + 1, 0, duplicatedSlide)
+    
+    setGeneratedDeck({
+      ...generatedDeck,
+      slides: updatedSlides
+    })
+  }, [generatedDeck])
+
+  const handleMoveSlide = useCallback((slideId: number, direction: 'up' | 'down') => {
+    if (!generatedDeck) return
+    
+    const slides = [...generatedDeck.slides]
+    const currentIndex = slides.findIndex(slide => slide.id === slideId)
+    
+    if (currentIndex === -1) return
+    
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    
+    if (newIndex < 0 || newIndex >= slides.length) return
+    
+    const [movedSlide] = slides.splice(currentIndex, 1)
+    slides.splice(newIndex, 0, movedSlide)
+    
+    setGeneratedDeck({
+      ...generatedDeck,
+      slides
+    })
+  }, [generatedDeck])
+
+  const handleExport = async () => {
+    if (!generatedDeck) return
+    
+    try {
+      await pdfExporter.downloadDeckAsPDF(generatedDeck)
+    } catch (error) {
+      console.error('Export failed:', error)
+      setError('Export failed. Please try again.')
+    }
+  }
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                How would you like to create?
+              </h1>
+              <p className="text-xl text-white/70 max-w-2xl mx-auto">
+                Choose your preferred method to get started with your pitch deck
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {CREATION_MODES.map((mode, index) => (
+                <motion.div
+                  key={mode.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                >
+                  <Card 
+                    className={`relative cursor-pointer transition-all duration-300 hover:scale-105 border-2 ${
+                      selectedMode === mode.id 
+                        ? 'border-purple-400 bg-purple-500/10' 
+                        : 'border-white/20 hover:border-white/40'
+                    }`}
+                    onClick={() => handleModeSelect(mode.id)}
+                  >
+                    {mode.recommended && (
+                      <Badge 
+                        variant="success" 
+                        className="absolute -top-2 -right-2 z-10"
+                      >
+                        Recommended
+                      </Badge>
+                    )}
+                    <CardContent className="p-8 text-center">
+                      <div className={`w-16 h-16 mx-auto mb-6 bg-gradient-to-r ${mode.color} rounded-2xl flex items-center justify-center`}>
+                        <mode.icon className="w-8 h-8 text-white" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-white mb-3">{mode.title}</h3>
+                      <p className="text-white/70 leading-relaxed">{mode.description}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )
+
+      case 2:
+        return (
+          <div className="max-w-2xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h1 className="text-4xl font-bold text-white mb-6 text-center">
+                Tell us about your business
+              </h1>
+              <p className="text-xl text-white/70 mb-8 text-center">
+                Provide some details so AI can create the perfect pitch deck for you
+              </p>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Business Description *
+                  </label>
+                  <Textarea
+                    value={businessDescription}
+                    onChange={(e) => setBusinessDescription(e.target.value)}
+                    placeholder="Describe what your business does, what problem it solves, and who your customers are..."
+                    rows={4}
+                    className="resize-none"
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      Industry
+                    </label>
+                    <Input
+                      value={industry}
+                      onChange={(e) => setIndustry(e.target.value)}
+                      placeholder="e.g., FinTech, HealthTech, SaaS"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      Target Audience
+                    </label>
+                    <select
+                      value={audience}
+                      onChange={(e) => setAudience(e.target.value)}
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    >
+                      <option value="investors">Investors</option>
+                      <option value="customers">Customers</option>
+                      <option value="partners">Partners</option>
+                      <option value="team">Team</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Number of Slides: {slideCount}
+                  </label>
+                  <input
+                    type="range"
+                    min="5"
+                    max="20"
+                    value={slideCount}
+                    onChange={(e) => setSlideCount(parseInt(e.target.value))}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-sm text-white/60 mt-1">
+                    <span>5 slides</span>
+                    <span>20 slides</span>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
+                    {error}
+                  </div>
+                )}
+
+                <div className="flex gap-4 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentStep(1)}
+                    className="flex-1"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </Button>
+                  <GradientButton
+                    onClick={handleGenerateOutline}
+                    disabled={isGenerating || !businessDescription.trim()}
+                    className="flex-1"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Brain className="w-4 h-4 mr-2" />
+                        Generate Outline
+                      </>
+                    )}
+                  </GradientButton>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )
+
+      case 3:
+        return (
+          <div className="max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h1 className="text-4xl font-bold text-white mb-6 text-center">
+                Review Your Outline
+              </h1>
+              <p className="text-xl text-white/70 mb-8 text-center">
+                AI generated this outline based on your business. You can proceed or regenerate.
+              </p>
+
+              {outline && (
+                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mb-8">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {outline.slides.map((slide, index) => (
+                      <div
+                        key={index}
+                        className="p-4 bg-white/5 rounded-lg border border-white/10"
+                      >
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+                            {index + 1}
+                          </div>
+                          <h3 className="font-medium text-white">{slide.title}</h3>
+                        </div>
+                        <p className="text-sm text-white/70">{slide.contentSummary}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="text-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentStep(4)}
+                  className="mr-4"
+                >
+                  Choose Theme
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleGenerateOutline}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Regenerating...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Regenerate
+                    </>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )
+
+      case 4:
+        return (
+          <div className="max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h1 className="text-4xl font-bold text-white mb-6 text-center">
+                Choose Your Theme
+              </h1>
+              <p className="text-xl text-white/70 mb-8 text-center">
+                Select a visual theme that matches your brand and audience
+              </p>
+
+              <div className="grid md:grid-cols-3 gap-6 mb-8">
+                {THEMES.map((theme, index) => (
+                  <motion.div
+                    key={theme.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                  >
+                    <Card 
+                      className={`cursor-pointer transition-all duration-300 hover:scale-105 border-2 ${
+                        selectedTheme === theme.id 
+                          ? 'border-purple-400 bg-purple-500/10' 
+                          : 'border-white/20 hover:border-white/40'
+                      }`}
+                      onClick={() => setSelectedTheme(theme.id)}
+                    >
+                      <CardContent className="p-6">
+                        <div className={`w-full h-24 ${theme.preview} rounded-lg mb-4 border border-white/20`} />
+                        <h3 className="text-lg font-semibold text-white text-center">{theme.name}</h3>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+
+              <div className="text-center">
+                <GradientButton
+                  onClick={handleGenerateDeck}
+                  disabled={isGenerating}
+                  className="px-8 py-3"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Creating Your Deck...
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="w-5 h-5 mr-2" />
+                      Create My Deck
+                    </>
+                  )}
+                </GradientButton>
+              </div>
+            </motion.div>
+          </div>
+        )
+
+      case 5:
+        return (
+          <div className="h-full">
+            {generatedDeck && (
+              <GammaDeckViewer
+                deck={generatedDeck}
+                onUpdateSlide={handleUpdateSlide}
+                onAddSlide={handleAddSlide}
+                onDeleteSlide={handleDeleteSlide}
+                onDuplicateSlide={handleDuplicateSlide}
+                onMoveSlide={handleMoveSlide}
+                onExport={handleExport}
+              />
+            )}
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  if (currentStep === 5 && generatedDeck) {
+    return renderStepContent()
+  }
+
+  return (
+    <Layout showHeader={true}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900">
+        <Container className="py-12">
+          {renderStepContent()}
+        </Container>
+      </div>
+    </Layout>
+  )
+}

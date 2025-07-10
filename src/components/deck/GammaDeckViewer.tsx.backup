@@ -1,0 +1,532 @@
+"use client"
+
+import React, { useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
+import { FlexCard } from '@/components/ui/FlexCard'
+import { InlineAiChat } from '@/components/ui/InlineAiChat'
+import { EditableText } from '@/components/ui/EditableText'
+import { VideoSlideTemplate } from '@/components/slides/VideoSlideTemplate'
+import { VideoRecorder } from '@/components/video/VideoRecorder'
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Download, 
+  Share, 
+  Plus,
+  BarChart3,
+  TrendingUp,
+  Users,
+  DollarSign,
+  MessageSquare,
+  Brain,
+  Sparkles,
+  LayoutGrid,
+  Maximize2,
+  FileText,
+  Target,
+  Lightbulb
+} from 'lucide-react'
+import { GeneratedDeck, DECK_THEMES } from '@/lib/deck-generator'
+import { SlideContent } from '@/lib/openai'
+
+interface GammaDeckViewerProps {
+  deck: GeneratedDeck
+  onEdit?: (slideId: number) => void
+  onExport?: () => void
+  onShare?: () => void
+  onUpdateSlide?: (slideId: number, updatedSlide: SlideContent) => void
+  onAddSlide?: (position: number, slideType?: string) => void
+  onDeleteSlide?: (slideId: number) => void
+  onDuplicateSlide?: (slideId: number) => void
+  onMoveSlide?: (slideId: number, direction: 'up' | 'down') => void
+}
+
+const SLIDE_TYPE_ICONS = {
+  title: FileText,
+  problem: Target,
+  solution: Lightbulb,
+  market: Users,
+  'business-model': DollarSign,
+  traction: TrendingUp,
+  team: Users,
+  financial: BarChart3,
+  video: FileText,
+  'intro-video': FileText,
+  default: FileText
+}
+
+export function GammaDeckViewer({ 
+  deck, 
+  onEdit, 
+  onExport, 
+  onShare, 
+  onUpdateSlide,
+  onAddSlide,
+  onDeleteSlide,
+  onDuplicateSlide,
+  onMoveSlide
+}: GammaDeckViewerProps) {
+  const [selectedCard, setSelectedCard] = useState<string | null>(null)
+  const [showAiChat, setShowAiChat] = useState(false)
+  const [aiChatContent, setAiChatContent] = useState('')
+  const [aiChatType, setAiChatType] = useState<'slide' | 'text' | 'list' | 'chart'>('slide')
+  const [viewMode, setViewMode] = useState<'cards' | 'slides'>('cards')
+  const [showVideoRecorder, setShowVideoRecorder] = useState(false)
+  const [editingVideoSlideId, setEditingVideoSlideId] = useState<number | null>(null)
+  const theme = DECK_THEMES[deck.theme] || DECK_THEMES.modern
+
+  const handleCardSelect = useCallback((id: string) => {
+    setSelectedCard(id)
+  }, [])
+
+  const handleAddContent = useCallback((position: 'above' | 'below', slideId?: string) => {
+    if (onAddSlide) {
+      const slideIndex = slideId ? deck.slides.findIndex(s => s.id.toString() === slideId) : 0
+      const insertPosition = position === 'above' ? slideIndex : slideIndex + 1
+      onAddSlide(insertPosition)
+    }
+  }, [deck.slides, onAddSlide])
+
+  const handleDeleteCard = useCallback((id: string) => {
+    if (onDeleteSlide) {
+      const slideId = parseInt(id)
+      onDeleteSlide(slideId)
+    }
+  }, [onDeleteSlide])
+
+  const handleDuplicateCard = useCallback((id: string) => {
+    if (onDuplicateSlide) {
+      const slideId = parseInt(id)
+      onDuplicateSlide(slideId)
+    }
+  }, [onDuplicateSlide])
+
+  const handleMoveCard = useCallback((id: string, direction: 'up' | 'down') => {
+    if (onMoveSlide) {
+      const slideId = parseInt(id)
+      onMoveSlide(slideId, direction)
+    }
+  }, [onMoveSlide])
+
+  const handleAiImprove = useCallback((id: string) => {
+    const slide = deck.slides.find(s => s.id.toString() === id)
+    if (slide) {
+      setAiChatContent(JSON.stringify(slide.content))
+      setAiChatType('slide')
+      setShowAiChat(true)
+    }
+  }, [deck.slides])
+
+  const handleApplyAiSuggestion = useCallback((content: string) => {
+    if (selectedCard && onUpdateSlide) {
+      const slideId = parseInt(selectedCard)
+      const slide = deck.slides.find(s => s.id === slideId)
+      if (slide) {
+        const updatedSlide = {
+          ...slide,
+          content: {
+            ...slide.content,
+            headline: content // Simplified - would need more sophisticated parsing
+          }
+        }
+        onUpdateSlide(slideId, updatedSlide)
+      }
+    }
+    setShowAiChat(false)
+  }, [selectedCard, deck.slides, onUpdateSlide])
+
+  const updateSlideContent = useCallback((slideId: number, field: string, value: any) => {
+    if (onUpdateSlide) {
+      const slide = deck.slides.find(s => s.id === slideId)
+      if (slide) {
+        const updatedSlide = {
+          ...slide,
+          content: {
+            ...slide.content,
+            [field]: value
+          }
+        }
+        onUpdateSlide(slideId, updatedSlide)
+      }
+    }
+  }, [deck.slides, onUpdateSlide])
+
+  const handleVideoSave = useCallback((videoBlob: Blob, thumbnail: string) => {
+    if (editingVideoSlideId && onUpdateSlide) {
+      const slide = deck.slides.find(s => s.id === editingVideoSlideId)
+      if (slide) {
+        const updatedSlide = {
+          ...slide,
+          content: {
+            ...slide.content,
+            video: {
+              blob: videoBlob,
+              thumbnail,
+              duration: 60, // Placeholder - would calculate from blob
+              title: 'Introduction Video',
+              description: 'Personal introduction from the founder'
+            }
+          }
+        }
+        onUpdateSlide(editingVideoSlideId, updatedSlide)
+      }
+    }
+    setShowVideoRecorder(false)
+    setEditingVideoSlideId(null)
+  }, [editingVideoSlideId, deck.slides, onUpdateSlide])
+
+  const handleEditVideo = useCallback((slideId: number) => {
+    setEditingVideoSlideId(slideId)
+    setShowVideoRecorder(true)
+  }, [])
+
+  const handleDeleteVideo = useCallback((slideId: number) => {
+    if (onUpdateSlide) {
+      const slide = deck.slides.find(s => s.id === slideId)
+      if (slide) {
+        const updatedSlide = {
+          ...slide,
+          content: {
+            ...slide.content,
+            video: undefined
+          }
+        }
+        onUpdateSlide(slideId, updatedSlide)
+      }
+    }
+  }, [deck.slides, onUpdateSlide])
+
+  const renderSlideContent = (slide: SlideContent) => {
+    const IconComponent = SLIDE_TYPE_ICONS[slide.type as keyof typeof SLIDE_TYPE_ICONS] || FileText
+
+    // Handle video slides specially
+    if (slide.type === 'video' || slide.type === 'intro-video') {
+      return (
+        <VideoSlideTemplate
+          slide={slide}
+          onUpdateSlide={(updatedSlide) => onUpdateSlide?.(slide.id, updatedSlide)}
+          onAiImprove={() => {
+            setAiChatContent(JSON.stringify(slide.content))
+            setAiChatType('slide')
+            setShowAiChat(true)
+          }}
+          videoBlob={slide.content.video?.blob}
+          thumbnailUrl={slide.content.video?.thumbnail}
+          onEditVideo={() => handleEditVideo(slide.id)}
+          onDeleteVideo={() => handleDeleteVideo(slide.id)}
+        />
+      )
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Slide Type Badge */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+            <IconComponent className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <Badge variant="secondary" className="mb-1">
+              {slide.type.replace('-', ' ').toUpperCase()}
+            </Badge>
+            <EditableText
+              content={slide.title}
+              onChange={(value) => updateSlideContent(slide.id, 'title', value)}
+              variant="h2"
+              className="text-2xl font-bold text-white"
+              placeholder="Slide title..."
+              onAiImprove={(content) => {
+                setAiChatContent(content)
+                setAiChatType('text')
+                setShowAiChat(true)
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="space-y-4">
+          {/* Headline */}
+          {slide.content.headline && (
+            <div>
+              <label className="text-sm text-white/60 mb-2 block">Headline</label>
+              <EditableText
+                content={slide.content.headline}
+                onChange={(value) => updateSlideContent(slide.id, 'headline', value)}
+                variant="h3"
+                className="text-xl font-semibold text-white"
+                placeholder="Main headline..."
+                onAiImprove={(content) => {
+                  setAiChatContent(content)
+                  setAiChatType('text')
+                  setShowAiChat(true)
+                }}
+              />
+            </div>
+          )}
+
+          {/* Subheadline */}
+          {slide.content.subheadline && (
+            <div>
+              <label className="text-sm text-white/60 mb-2 block">Subheadline</label>
+              <EditableText
+                content={slide.content.subheadline}
+                onChange={(value) => updateSlideContent(slide.id, 'subheadline', value)}
+                variant="p"
+                className="text-lg text-white/80"
+                placeholder="Supporting text..."
+                onAiImprove={(content) => {
+                  setAiChatContent(content)
+                  setAiChatType('text')
+                  setShowAiChat(true)
+                }}
+              />
+            </div>
+          )}
+
+          {/* Bullet Points */}
+          {slide.content.bullets && slide.content.bullets.length > 0 && (
+            <div>
+              <label className="text-sm text-white/60 mb-2 block">Key Points</label>
+              <div className="space-y-2">
+                {slide.content.bullets.map((bullet, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0" />
+                    <EditableText
+                      content={bullet}
+                      onChange={(value) => {
+                        const newBullets = [...(slide.content.bullets || [])]
+                        newBullets[index] = value
+                        updateSlideContent(slide.id, 'bullets', newBullets)
+                      }}
+                      variant="p"
+                      className="text-white/90 flex-1"
+                      placeholder="Bullet point..."
+                      onAiImprove={(content) => {
+                        setAiChatContent(content)
+                        setAiChatType('text')
+                        setShowAiChat(true)
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Metrics */}
+          {slide.content.metrics && slide.content.metrics.length > 0 && (
+            <div>
+              <label className="text-sm text-white/60 mb-2 block">Metrics</label>
+              <div className="grid grid-cols-2 gap-4">
+                {slide.content.metrics.map((metric, index) => (
+                  <div key={index} className="p-4 bg-white/10 rounded-lg border border-white/20">
+                    <EditableText
+                      content={metric.value}
+                      onChange={(value) => {
+                        const newMetrics = [...(slide.content.metrics || [])]
+                        newMetrics[index].value = value
+                        updateSlideContent(slide.id, 'metrics', newMetrics)
+                      }}
+                      variant="h3"
+                      className="text-2xl font-bold text-purple-400"
+                      placeholder="Value..."
+                    />
+                    <EditableText
+                      content={metric.label}
+                      onChange={(value) => {
+                        const newMetrics = [...(slide.content.metrics || [])]
+                        newMetrics[index].label = value
+                        updateSlideContent(slide.id, 'metrics', newMetrics)
+                      }}
+                      variant="p"
+                      className="text-white/70 text-sm"
+                      placeholder="Label..."
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Callout */}
+          {slide.content.callout && (
+            <div className="p-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg border border-purple-400/30">
+              <label className="text-sm text-purple-300 mb-2 block">Callout</label>
+              <EditableText
+                content={slide.content.callout}
+                onChange={(value) => updateSlideContent(slide.id, 'callout', value)}
+                variant="p"
+                className="text-white font-medium"
+                placeholder="Important highlight..."
+                onAiImprove={(content) => {
+                  setAiChatContent(content)
+                  setAiChatType('text')
+                  setShowAiChat(true)
+                }}
+              />
+            </div>
+          )}
+
+          {/* Next Steps */}
+          {slide.content.nextSteps && slide.content.nextSteps.length > 0 && (
+            <div>
+              <label className="text-sm text-white/60 mb-2 block">Next Steps</label>
+              <div className="space-y-2">
+                {slide.content.nextSteps.map((step, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      {index + 1}
+                    </div>
+                    <EditableText
+                      content={step}
+                      onChange={(value) => {
+                        const newSteps = [...(slide.content.nextSteps || [])]
+                        newSteps[index] = value
+                        updateSlideContent(slide.id, 'nextSteps', newSteps)
+                      }}
+                      variant="p"
+                      className="text-white/90 flex-1"
+                      placeholder="Next step..."
+                      onAiImprove={(content) => {
+                        setAiChatContent(content)
+                        setAiChatType('text')
+                        setShowAiChat(true)
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-full flex flex-col bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900">
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 border-b border-white/10">
+        <div>
+          <h1 className="text-2xl font-bold text-white">{deck.title}</h1>
+          <p className="text-white/60">
+            {deck.slides.length} cards • {theme.name} theme
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setViewMode(viewMode === 'cards' ? 'slides' : 'cards')}
+            className={viewMode === 'slides' ? 'bg-blue-500/20 border-blue-400' : ''}
+          >
+            {viewMode === 'cards' ? (
+              <>
+                <Maximize2 className="w-4 h-4 mr-2" />
+                Slide View
+              </>
+            ) : (
+              <>
+                <LayoutGrid className="w-4 h-4 mr-2" />
+                Card View
+              </>
+            )}
+          </Button>
+          <Button variant="outline" size="sm" onClick={onShare}>
+            <Share className="w-4 h-4 mr-2" />
+            Share
+          </Button>
+          <Button variant="outline" size="sm" onClick={onExport}>
+            <Download className="w-4 h-4 mr-2" />
+            Export PDF
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        {viewMode === 'cards' ? (
+          <div className="h-full overflow-y-auto">
+            <div className="max-w-4xl mx-auto p-6 space-y-8">
+              {deck.slides.map((slide, index) => (
+                <FlexCard
+                  key={slide.id}
+                  id={slide.id.toString()}
+                  content={renderSlideContent(slide)}
+                  isSelected={selectedCard === slide.id.toString()}
+                  onSelect={handleCardSelect}
+                  onAddContent={(position) => handleAddContent(position, slide.id.toString())}
+                  onDeleteCard={handleDeleteCard}
+                  onDuplicateCard={handleDuplicateCard}
+                  onMoveCard={handleMoveCard}
+                  onAiImprove={handleAiImprove}
+                  minHeight={200}
+                  className="transition-all duration-300"
+                />
+              ))}
+              
+              {/* Add Card Button */}
+              <motion.div
+                className="flex items-center justify-center p-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => handleAddContent('below')}
+                  className="border-dashed border-2 border-white/30 hover:border-purple-400 hover:bg-purple-500/10"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Add New Card
+                </Button>
+              </motion.div>
+            </div>
+          </div>
+        ) : (
+          // Traditional slide view would go here
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <Maximize2 className="w-16 h-16 text-white/30 mx-auto mb-4" />
+              <p className="text-white/60">Traditional slide view coming soon</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* AI Chat Interface */}
+      <InlineAiChat
+        isOpen={showAiChat}
+        onClose={() => setShowAiChat(false)}
+        onApplySuggestion={handleApplyAiSuggestion}
+        currentContent={aiChatContent}
+        contentType={aiChatType}
+      />
+
+      {/* Video Recorder */}
+      <VideoRecorder
+        isOpen={showVideoRecorder}
+        onClose={() => {
+          setShowVideoRecorder(false)
+          setEditingVideoSlideId(null)
+        }}
+        onVideoSave={handleVideoSave}
+        maxDuration={300} // 5 minutes
+        suggestedDuration={60} // 1 minute
+      />
+
+      {/* Click to deselect cards */}
+      {selectedCard && (
+        <div 
+          className="fixed inset-0 z-10" 
+          onClick={() => setSelectedCard(null)}
+        />
+      )}
+    </div>
+  )
+}
