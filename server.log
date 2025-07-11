@@ -1,0 +1,15 @@
+
+> deckpress@0.1.0 dev
+> next dev --port 31415
+
+  ▲ Next.js 14.2.30
+  - Local:        http://localhost:31415
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1041ms
+ ○ Compiling / ...
+ ✓ Compiled / in 3.7s (1373 modules)
+ HEAD / 200 in 3920ms
+ ✓ Compiled in 391ms (677 modules)
+[?25h
