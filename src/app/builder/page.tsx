@@ -343,7 +343,8 @@ export default function AIBuilder() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic: topicText,
+          description: topicText, // Use description field name
+          topic: topicText, // Keep topic for backward compatibility
           industry: formData.industry,
           audience: formData.audience,
           slideCount: formData.slideCount,

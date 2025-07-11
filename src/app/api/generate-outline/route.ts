@@ -5,12 +5,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
-    // Validate required fields
-    const { topic, industry, audience, slideCount, existingContent } = body
+    // Validate required fields - support both new (description) and old (topic) field names
+    const { topic, description, industry, audience, slideCount, existingContent } = body
+    const startupDescription = description || topic // Use description if available, fallback to topic
     
-    if (!topic || !audience || !slideCount) {
+    if (!startupDescription || !audience || !slideCount) {
       return NextResponse.json(
-        { error: 'Missing required fields: topic, audience, slideCount' },
+        { error: 'Missing required fields: description/topic, audience, slideCount' },
         { status: 400 }
       )
     }
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const context: StartupContext = {
-      topic: topic.trim(),
+      topic: startupDescription.trim(),
       industry: industry?.trim() || '',
       audience,
       slideCount: parseInt(slideCount),
