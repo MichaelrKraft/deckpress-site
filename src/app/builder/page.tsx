@@ -44,6 +44,8 @@ import {
   ArrowRight
 } from 'lucide-react'
 import { GradientButton } from '@/components/ui/gradient-button'
+import GuidedInput from '@/components/input/GuidedInput'
+import InteractiveOutlineReview from '@/components/outline/InteractiveOutlineReview'
 
 // Gamma-inspired creation modes
 const CREATION_MODES = [
@@ -162,7 +164,9 @@ export default function AIBuilder() {
   const [formData, setFormData] = useState({
     mode: 'generate',
     topic: '',
+    description: '', // Add description field for GuidedInput
     industry: '',
+    stage: 'seed', // Add stage field for GuidedInput
     audience: 'investors',
     slideCount: 10,
     selectedTheme: 'modern'
@@ -194,6 +198,10 @@ export default function AIBuilder() {
         }
         break
       case 'topic':
+        // Sync description to topic for backward compatibility
+        if (formData.description && !formData.topic) {
+          updateFormData('topic', formData.description)
+        }
         generateOutline()
         break
       case 'outline':
@@ -319,7 +327,10 @@ export default function AIBuilder() {
   }
 
   const generateOutline = async () => {
-    if (!formData.topic.trim()) {
+    // Use description field if available, fallback to topic for backward compatibility
+    const topicText = formData.description || formData.topic
+    
+    if (!topicText.trim()) {
       setError('Please describe your startup first')
       return
     }
@@ -332,10 +343,11 @@ export default function AIBuilder() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic: formData.topic,
+          topic: topicText,
           industry: formData.industry,
           audience: formData.audience,
-          slideCount: formData.slideCount
+          slideCount: formData.slideCount,
+          stage: formData.stage // Include stage for better AI context
         })
       })
 
@@ -439,8 +451,17 @@ export default function AIBuilder() {
     setEditedSummary('')
   }
 
+  const handleSectionsChange = (updatedSections: any[]) => {
+    if (!generatedOutline) return
+    
+    setGeneratedOutline({
+      ...generatedOutline,
+      slides: updatedSections
+    })
+  }
+
   const handleAiImprove = async (slideId: number) => {
-    if (!generatedOutline || !aiPrompt.trim()) return
+    if (!generatedOutline) return
 
     const slide = generatedOutline.slides.find(s => s.id === slideId)
     if (!slide) return
@@ -456,9 +477,9 @@ export default function AIBuilder() {
           slideTitle: slide.title,
           slideContent: slide.contentSummary,
           slideType: slide.type,
-          userPrompt: aiPrompt,
+          userPrompt: 'Please improve this slide content to be more compelling and investor-friendly',
           context: {
-            topic: formData.topic,
+            topic: formData.topic || formData.description,
             industry: formData.industry,
             audience: formData.audience
           }
@@ -684,349 +705,134 @@ export default function AIBuilder() {
     </motion.div>
   )
 
-  const renderTopicInput = () => (
-    <motion.div
-      className="relative flex items-center justify-center min-h-[80vh] py-8"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      {/* Subtle background gradient for depth */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-950 via-slate-900 to-purple-900 opacity-90" />
-      <div className="absolute top-1/4 left-0 w-64 h-64 bg-purple-700/20 rounded-full blur-3xl animate-pulse z-0" />
-      <div className="absolute bottom-1/4 right-0 w-64 h-64 bg-blue-700/20 rounded-full blur-3xl animate-pulse z-0" />
+  const renderTopicInput = () => {
+    const handleGuidedInputSubmit = () => {
+      // Sync description to topic for backward compatibility
+      if (formData.description && !formData.topic) {
+        updateFormData('topic', formData.description)
+      }
+      generateOutline()
+    }
 
-      <Card className="relative z-10 w-full max-w-2xl mx-auto p-10 md:p-14 shadow-2xl border-0 bg-gradient-to-br from-slate-900/90 to-blue-900/80">
-        <div className="mb-10 text-center">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-2 tracking-tight leading-tight">
-            Tell us about your startup
-          </h1>
-          <p className="text-lg md:text-xl text-white/70 font-medium max-w-xl mx-auto">
-            Help our AI understand your business so we can create a pitch deck that stands out.
-          </p>
-        </div>
-        <form className="space-y-8">
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <label className="block text-base font-semibold text-white mb-2">
-                What&apos;s your startup about? <span className="text-pink-400">*</span>
-              </label>
-              <Textarea
-                placeholder="e.g., AI-powered platform that helps wealth managers connect with qualified investors..."
-                value={formData.topic}
-                onChange={(e) => updateFormData('topic', e.target.value)}
-                rows={5}
-                className="w-full bg-slate-800/80 border border-blue-700/30 text-white placeholder:text-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              />
-            </div>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-base font-semibold text-white mb-2">
-                  Industry
-                </label>
-                <Input
-                  placeholder="e.g., FinTech, HealthTech, SaaS"
-                  value={formData.industry}
-                  onChange={(e) => updateFormData('industry', e.target.value)}
-                  className="bg-slate-800/80 border border-blue-700/30 text-white placeholder:text-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                />
-              </div>
-              <div>
-                <label className="block text-base font-semibold text-white mb-2">
-                  Target Audience
-                </label>
-                <select
-                  className="w-full px-3 py-2 bg-slate-800/80 border border-blue-700/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                  value={formData.audience}
-                  onChange={(e) => updateFormData('audience', e.target.value)}
-                >
-                  <option value="investors">Investors</option>
-                  <option value="customers">Customers</option>
-                  <option value="partners">Partners</option>
-                  <option value="employees">Employees</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-base font-semibold text-white mb-2">
-                  Number of slides
-                </label>
-                <Input
-                  type="number"
-                  min="5"
-                  max="20"
-                  value={formData.slideCount}
-                  onChange={(e) => updateFormData('slideCount', parseInt(e.target.value))}
-                  className="bg-slate-800/80 border border-blue-700/30 text-white placeholder:text-white/40 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-white/10 mt-4">
-            <Button variant="outline" onClick={handlePrevious} className="w-full md:w-auto">
-              <ArrowLeft className="w-4 h-4 mr-2" /> Back
-            </Button>
-            <GradientButton
-              type="button"
-              onClick={handleNext}
-              disabled={!formData.topic.trim() || isGenerating}
-              className="w-full md:w-auto text-lg px-12 py-6 shadow-2xl transition-all duration-300 transform hover:scale-105"
-            >
-              <Brain className="w-6 h-6 mr-3" />
-              Start Creating Your Deck
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </GradientButton>
-          </div>
-        </form>
-      </Card>
-    </motion.div>
-  )
-
-  const renderOutlineReview = () => (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900" />
-      <div className="absolute inset-0">
-        <div className="absolute top-1/4 -left-32 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
-      </div>
-
+    return (
       <motion.div
-        className="relative z-10 max-w-6xl mx-auto px-6 py-12"
+        className="relative min-h-[90vh] py-8"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        {/* Header Section */}
-        <div className="text-center mb-12">
-          <motion.h1
-            className="text-4xl md:text-5xl font-bold text-white mb-4"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            {getStepTitle()}
-          </motion.h1>
-          <motion.p
-            className="text-xl text-white/70 max-w-3xl mx-auto"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
-            {getStepDescription()}
-          </motion.p>
-        </div>
+        {/* Subtle background gradient for depth */}
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-950 via-slate-900 to-purple-900 opacity-90" />
+        <div className="absolute top-1/4 left-0 w-64 h-64 bg-purple-700/20 rounded-full blur-3xl animate-pulse z-0" />
+        <div className="absolute bottom-1/4 right-0 w-64 h-64 bg-blue-700/20 rounded-full blur-3xl animate-pulse z-0" />
 
-        {/* AI Summary Card */}
-        <motion.div
-          className="mb-8"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-        >
-          <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-2xl">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="relative">
-                <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Brain className="w-8 h-8 text-white" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-1">AI-Generated Outline</h3>
-                <p className="text-white/60">Based on your input about: &quot;{formData.topic}&quot;</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span className="text-sm text-green-400 font-medium">{generatedOutline?.slides.length} slides created</span>
-                </div>
-              </div>
-            </div>
+        <div className="relative z-10">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight leading-tight">
+              Tell us about your startup
+            </h1>
+            <p className="text-lg md:text-xl text-white/70 font-medium max-w-3xl mx-auto">
+              Help our AI understand your business so we can create a pitch deck that stands out.
+            </p>
           </div>
-        </motion.div>
 
-        {/* Slides Grid */}
-        <div className="grid gap-6 mb-12">
-          {generatedOutline?.slides.map((slide, index) => {
-            const slideTypeInfo = SLIDE_TYPE_ICONS[slide.type as keyof typeof SLIDE_TYPE_ICONS] || SLIDE_TYPE_ICONS['title']
-            const IconComponent = slideTypeInfo.icon
-            
-            return (
-              <motion.div
-                key={slide.id}
-                className="group relative"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                onMouseEnter={() => setHoveredSlide(slide.id)}
-                onMouseLeave={() => setHoveredSlide(null)}
-              >
-                {/* Connecting Line to Next Slide */}
-                {index < (generatedOutline?.slides.length || 0) - 1 && (
-                  <div className="absolute left-1/2 -bottom-3 w-px h-6 bg-gradient-to-b from-purple-400/50 to-transparent z-10" />
-                )}
-                
-                {/* Main Card */}
-                <div className={`
-                  backdrop-blur-xl bg-white/5 border-2 rounded-2xl overflow-hidden
-                  transition-all duration-300 transform hover:scale-[1.02] hover:shadow-2xl
-                  ${hoveredSlide === slide.id 
-                    ? 'border-purple-400/50 bg-white/10 shadow-purple-500/20 shadow-2xl' 
-                    : 'border-white/10 hover:border-white/20'
-                  }
-                `}>
-                  
-                  {/* Card Content */}
-                  <div className="p-6">
-                    <div className="flex items-start gap-4">
-                      {/* Slide Number & Icon */}
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="relative">
-                          <div className="w-12 h-12 bg-gradient-to-r from-slate-800 to-slate-700 rounded-xl flex items-center justify-center border border-white/20">
-                            <span className="text-white font-bold text-lg">{index + 1}</span>
-                          </div>
-                          <div className={`absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r ${slideTypeInfo.color} rounded-lg flex items-center justify-center`}>
-                            <IconComponent className="w-3 h-3 text-white" />
-                          </div>
-                        </div>
-                      </div>
+          <GuidedInput
+            formData={{
+              description: formData.description,
+              industry: formData.industry,
+              stage: formData.stage,
+              audience: formData.audience,
+              slideCount: formData.slideCount
+            }}
+            onInputChange={updateFormData}
+            onSubmit={handleGuidedInputSubmit}
+            isLoading={isGenerating}
+            error={error}
+          />
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        {editingSlide === slide.id ? (
-                          <div className="space-y-3">
-                            <input
-                              type="text"
-                              value={editedTitle}
-                              onChange={(e) => setEditedTitle(e.target.value)}
-                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-400 transition-all"
-                              placeholder="Slide title"
-                            />
-                            <textarea
-                              value={editedSummary}
-                              onChange={(e) => setEditedSummary(e.target.value)}
-                              rows={3}
-                              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-400 resize-none transition-all"
-                              placeholder="Content summary"
-                            />
-                          </div>
-                        ) : (
-                          <div>
-                            <h4 className="text-xl font-bold text-white mb-2 group-hover:text-purple-200 transition-colors">
-                              {slide.title}
-                            </h4>
-                            <p className="text-white/70 leading-relaxed group-hover:text-white/80 transition-colors">
-                              {slide.contentSummary}
-                            </p>
-                          </div>
-                        )}
-                      </div>
+          {/* Navigation */}
+          <div className="flex items-center justify-center mt-8 pt-6 border-t border-white/10 max-w-4xl mx-auto">
+            <Button 
+              variant="outline" 
+              onClick={handlePrevious}
+              className="px-6 py-3 border-white/20 hover:border-white/40 backdrop-blur-sm"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Mode Selection
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    )
+  }
 
-                      {/* Action Buttons */}
-                      <div className="flex flex-col gap-2">
-                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${slideTypeInfo.bg} text-white border border-white/20`}>
-                          {slide.type}
-                        </div>
-                        
-                        {editingSlide === slide.id ? (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={handleSaveEdit}
-                              className="p-2 hover:bg-green-500/20 rounded-xl transition-all duration-200 group/btn"
-                              title="Save changes"
-                            >
-                              <Save className="w-4 h-4 text-green-400 group-hover/btn:scale-110 transition-transform" />
-                            </button>
-                            <button
-                              onClick={handleCancelEdit}
-                              className="p-2 hover:bg-red-500/20 rounded-xl transition-all duration-200 group/btn"
-                              title="Cancel editing"
-                            >
-                              <X className="w-4 h-4 text-red-400 group-hover/btn:scale-110 transition-transform" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <button
-                              onClick={() => handleEditSlide(slide.id, slide.title, slide.contentSummary)}
-                              className="p-2 hover:bg-blue-500/20 rounded-xl transition-all duration-200 group/btn"
-                              title="Edit slide"
-                            >
-                              <Edit3 className="w-4 h-4 text-blue-400 group-hover/btn:scale-110 transition-transform" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenAiRevise(slide.id)}
-                              className="p-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-xl transition-all duration-200 group/btn shadow-lg"
-                              title="AI Revise"
-                            >
-                              <Sparkles className="w-4 h-4 text-white group-hover/btn:scale-110 transition-transform" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+  const renderOutlineReview = () => {
+    if (!generatedOutline) return null
 
-                  {/* Quality Indicator */}
-                  <div className="px-6 pb-4">
-                    <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
-                      <motion.div
-                        className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min(85 + Math.random() * 15, 100)}%` }}
-                        transition={{ duration: 1, delay: index * 0.1 }}
-                      />
-                    </div>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-xs text-white/60">Content Quality</span>
-                      <span className="text-xs text-green-400 font-medium">Excellent</span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )
-          })}
+    return (
+      <div className="min-h-screen relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900" />
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 -left-32 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
         </div>
 
-        {/* Navigation */}
         <motion.div
-          className="flex items-center justify-between"
-          initial={{ opacity: 0, y: 30 }}
+          className="relative z-10"
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1 }}
+          transition={{ duration: 0.6 }}
         >
-          <Button 
-            variant="outline" 
-            onClick={handlePrevious}
-            className="px-6 py-3 border-white/20 hover:border-white/40 backdrop-blur-sm"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back
-          </Button>
-          
-          <Button 
-            onClick={handleNext} 
-            className="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-purple-500/25"
-          >
-            Continue to Themes <ChevronRight className="w-5 h-5 ml-2" />
-          </Button>
-        </motion.div>
-      </motion.div>
+          {/* Use the new InteractiveOutlineReview component */}
+          <InteractiveOutlineReview
+            sections={generatedOutline.slides}
+            onSectionsChange={handleSectionsChange}
+            onAiImprove={handleAiImprove}
+            isLoading={isGenerating || isAiProcessing}
+          />
 
-      {/* AI Revise Modal */}
-      {showAiReviseModal && (
-        <AiReviseModal
-          isOpen={showAiReviseModal}
-          onClose={() => {
-            setShowAiReviseModal(false)
-            setReviseSlideId(null)
-            setReviseConversation([])
-          }}
-          slide={generatedOutline?.slides.find(s => s.id === reviseSlideId)}
-          conversation={reviseConversation}
-          onSubmit={handleAiReviseSubmit}
-          isProcessing={isAiProcessing}
-        />
-      )}
-    </div>
-  )
+          {/* Navigation */}
+          <motion.div
+            className="flex items-center justify-between max-w-6xl mx-auto px-6 mt-8"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 1 }}
+          >
+            <Button 
+              variant="outline" 
+              onClick={handlePrevious}
+              className="px-6 py-3 border-white/20 hover:border-white/40 backdrop-blur-sm"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back
+            </Button>
+            
+            <Button 
+              onClick={handleNext} 
+              className="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-purple-500/25"
+            >
+              Continue to Themes <ChevronRight className="w-5 h-5 ml-2" />
+            </Button>
+          </motion.div>
+        </motion.div>
+
+        {/* AI Revise Modal */}
+        {showAiReviseModal && (
+          <AiReviseModal
+            isOpen={showAiReviseModal}
+            onClose={() => {
+              setShowAiReviseModal(false)
+              setReviseSlideId(null)
+              setReviseConversation([])
+            }}
+            slide={generatedOutline?.slides.find(s => s.id === reviseSlideId)}
+            conversation={reviseConversation}
+            onSubmit={handleAiReviseSubmit}
+            isProcessing={isAiProcessing}
+          />
+        )}
+      </div>
+    )
+  }
 
   const renderThemeSelection = () => (
     <motion.div
