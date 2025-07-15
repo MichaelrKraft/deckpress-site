@@ -22,6 +22,68 @@ docker build -t deckpress . # Build Docker image
 ### Testing AI Integration
 The application works in demo mode without real OpenAI API keys. Set `OPENAI_API_KEY=demo_key_for_testing` in `.env.local` to use fallback content generation.
 
+## ⚠️ Local Development Setup
+
+### CRITICAL: Static Export Configuration Issue
+
+**This project uses Next.js with API routes for AI deck generation. Before running locally, you MUST check the configuration:**
+
+#### 1. Check `next.config.js` Configuration
+```javascript
+// FOR DEVELOPMENT - These lines MUST be commented out:
+// output: 'export',
+// trailingSlash: true,
+
+// FOR PRODUCTION DEPLOYMENT - Uncomment if deploying as static site
+```
+
+#### 2. Why This Matters
+- **Static export** (`output: 'export'`) **BREAKS API routes** (`/api/generate-outline`, `/api/generate-deck`, etc.)
+- **Development server fails** with "site can't be reached" errors
+- **AI functionality won't work** without API route support
+
+#### 3. Port Conflicts with Multiple Projects
+If running multiple Claude Code projects simultaneously:
+```bash
+# Default port (may conflict)
+npm run dev
+
+# Use alternative port to avoid conflicts
+npm run dev -- --port 3001
+npm run dev -- --port 4000
+```
+
+### Common Local Development Issues
+
+#### ❌ "Site can't be reached" / "Connection refused"
+**Cause**: Static export is enabled in `next.config.js`
+**Solution**: 
+1. Comment out `output: 'export'` and `trailingSlash: true` in `next.config.js`
+2. Restart development server
+3. Alternative: Use `npx serve out -p 3001` to serve static build
+
+#### ❌ "initializeSessionControls is not a function"
+**Cause**: Port conflict with another project (usually autonomous_vibe_interface on port 3000)
+**Solution**: Use different port: `npm run dev -- --port 3001`
+
+#### ❌ "Failed to execute 'json' on 'Response': Unexpected end of JSON input"
+**Cause**: API routes not working due to static export configuration
+**Solution**: Disable static export in `next.config.js` for development
+
+### Development vs Production Configuration
+
+| Environment | Static Export | API Routes | Use Case |
+|-------------|---------------|------------|----------|
+| **Development** | ❌ Disabled | ✅ Working | Local testing with AI features |
+| **Production** | ⚠️ Optional | ❌ Limited | Static hosting (Vercel handles this automatically) |
+
+### Quick Start Checklist
+1. ✅ Check `next.config.js` - static export commented out
+2. ✅ Verify port availability (avoid 3000 if running other projects)
+3. ✅ Run `npm run dev` or `npm run dev -- --port 3001`
+4. ✅ Test API endpoints work (try generating a deck)
+5. ✅ Set `OPENAI_API_KEY=demo_key_for_testing` for demo mode
+
 ## Architecture Overview
 
 ### Application Structure

@@ -41,7 +41,8 @@ import {
   Settings,
   Eye,
   MoreHorizontal,
-  ArrowRight
+  ArrowRight,
+  Check
 } from 'lucide-react'
 import { GradientButton } from '@/components/ui/gradient-button'
 import GuidedInput from '@/components/input/GuidedInput'
@@ -133,11 +134,47 @@ const THEMES = [
     preview: 'Finance-optimized',
     gradient: 'from-green-600 via-emerald-500 to-green-700',
     pattern: 'charts'
+  },
+  // NEW 21st DEV THEMES
+  { 
+    id: 'neonCyberpunk', 
+    name: 'Neon Cyberpunk', 
+    preview: 'Futuristic dark with neon accents',
+    gradient: 'from-cyan-400 via-purple-500 to-pink-500',
+    pattern: 'cyber'
+  },
+  { 
+    id: 'glassMorphism', 
+    name: 'Glass Morphism', 
+    preview: 'Translucent modern design',
+    gradient: 'from-purple-400 via-blue-400 to-cyan-400',
+    pattern: 'glass'
+  },
+  { 
+    id: 'gradientMesh', 
+    name: 'Gradient Mesh', 
+    preview: 'Colorful flowing gradients',
+    gradient: 'from-pink-400 via-purple-400 to-blue-400',
+    pattern: 'mesh'
+  },
+  { 
+    id: 'retroTerminal', 
+    name: 'Retro Terminal', 
+    preview: 'Classic green-on-black terminal',
+    gradient: 'from-green-400 via-yellow-400 to-orange-400',
+    pattern: 'terminal'
+  },
+  { 
+    id: 'brutalistModern', 
+    name: 'Brutalist Modern', 
+    preview: 'Bold geometric shapes',
+    gradient: 'from-red-500 via-yellow-400 to-black',
+    pattern: 'brutalist'
   }
 ]
 
 export default function AIBuilder() {
-  const [currentStep, setCurrentStep] = useState('mode')
+  const [currentStep, setCurrentStep] = useState('startup-input')
   const [selectedMode, setSelectedMode] = useState('generate')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedOutline, setGeneratedOutline] = useState<PitchDeckOutline | null>(null)
@@ -155,6 +192,19 @@ export default function AIBuilder() {
   const [reviseSlideId, setReviseSlideId] = useState<number | null>(null)
   const [reviseConversation, setReviseConversation] = useState<Array<{role: 'user' | 'ai', message: string}>>([])
   const [hoveredSlide, setHoveredSlide] = useState<number | null>(null)
+  
+  // Interactive builder states
+  const [startupInput, setStartupInput] = useState('')
+  const [showQuestions, setShowQuestions] = useState(false)
+  const [aiQuestions, setAiQuestions] = useState<Array<{
+    id: string
+    question: string
+    aiAnswer: string
+    userAnswer?: string
+    isAccepted: boolean
+    isEditing: boolean
+  }>>([])
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false)
   
   // Add state for paste and import modes
   const [pastedContent, setPastedContent] = useState('')
@@ -176,8 +226,122 @@ export default function AIBuilder() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  // Generate AI questions based on startup input
+  const generateAIQuestions = async () => {
+    if (!startupInput.trim()) {
+      setError('Please describe your startup first')
+      return
+    }
+
+    setIsGeneratingQuestions(true)
+    setError(null)
+
+    try {
+      // Generate intelligent questions based on the startup input
+      const questions = [
+        {
+          id: 'problem',
+          question: 'What specific problem does your startup solve?',
+          aiAnswer: `Based on "${startupInput}", your startup addresses the need for...`
+        },
+        {
+          id: 'solution',
+          question: 'How does your solution uniquely solve this problem?',
+          aiAnswer: `Your innovative approach involves...`
+        },
+        {
+          id: 'market',
+          question: 'Who is your target market and how large is it?',
+          aiAnswer: `The target market consists of...`
+        },
+        {
+          id: 'business-model',
+          question: 'How will you make money?',
+          aiAnswer: `Your revenue model is based on...`
+        },
+        {
+          id: 'ask',
+          question: 'What are you asking for from investors?',
+          aiAnswer: `You are seeking funding to...`
+        }
+      ]
+
+      // Simulate AI processing time
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      const generatedQuestions = questions.map(q => ({
+        ...q,
+        aiAnswer: `AI-generated answer for "${q.question}" based on your startup: ${startupInput}`,
+        isAccepted: false,
+        isEditing: false
+      }))
+
+      setAiQuestions(generatedQuestions)
+      setShowQuestions(true)
+      updateFormData('topic', startupInput)
+      updateFormData('description', startupInput)
+      setCurrentStep('questions')
+    } catch (error) {
+      setError('Failed to generate questions. Please try again.')
+    } finally {
+      setIsGeneratingQuestions(false)
+    }
+  }
+
+  // Handle question answer updates
+  const handleAnswerChange = (questionId: string, newAnswer: string) => {
+    setAiQuestions(prev => prev.map(q => 
+      q.id === questionId 
+        ? { ...q, userAnswer: newAnswer, isEditing: false }
+        : q
+    ))
+  }
+
+  // Accept AI answer
+  const acceptAIAnswer = (questionId: string) => {
+    setAiQuestions(prev => prev.map(q => 
+      q.id === questionId 
+        ? { ...q, isAccepted: true, userAnswer: q.aiAnswer, isEditing: false }
+        : q
+    ))
+  }
+
+  // Start editing answer
+  const startEditingAnswer = (questionId: string) => {
+    setAiQuestions(prev => prev.map(q => 
+      q.id === questionId 
+        ? { ...q, isEditing: true }
+        : q
+    ))
+  }
+
+  // Delete question
+  const deleteQuestion = (questionId: string) => {
+    setAiQuestions(prev => prev.filter(q => q.id !== questionId))
+  }
+
+  // Proceed to deck generation
+  const proceedToDeckGeneration = () => {
+    // Compile all accepted answers into formData
+    const answeredQuestions = aiQuestions.filter(q => q.isAccepted || q.userAnswer)
+    const compiledInfo = answeredQuestions.map(q => 
+      `${q.question}: ${q.userAnswer || q.aiAnswer}`
+    ).join('\n\n')
+    
+    updateFormData('topic', startupInput)
+    updateFormData('description', `${startupInput}\n\n${compiledInfo}`)
+    
+    setCurrentStep('theme')
+  }
+
   const handleNext = () => {
     switch (currentStep) {
+      case 'startup-input':
+        generateAIQuestions()
+        break
+      case 'questions':
+        proceedToDeckGeneration()
+        break
       case 'mode':
         if (selectedMode === 'paste') {
           setCurrentStep('paste')
@@ -303,10 +467,39 @@ export default function AIBuilder() {
         body: formDataToSend
       })
 
-      const data = await response.json()
-      
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to process imported file')
+        const errorText = await response.text()
+        let errorMessage = 'Failed to process imported file'
+        
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // If not JSON, use the text directly
+          errorMessage = errorText || errorMessage
+        }
+        
+        throw new Error(errorMessage)
+      }
+
+      // Check if response has content before parsing
+      const responseText = await response.text()
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('Empty response from server')
+      }
+
+      let data
+      try {
+        data = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError)
+        console.error('Response Text:', responseText)
+        throw new Error('Invalid response format from server')
+      }
+
+      if (!data.outline) {
+        throw new Error('Invalid response: missing outline data')
       }
 
       setGeneratedOutline(data.outline)
@@ -352,16 +545,46 @@ export default function AIBuilder() {
         })
       })
 
-      const data = await response.json()
-      
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate outline')
+        const errorText = await response.text()
+        let errorMessage = 'Failed to generate outline'
+        
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // If not JSON, use the text directly
+          errorMessage = errorText || errorMessage
+        }
+        
+        throw new Error(errorMessage)
+      }
+
+      // Check if response has content before parsing
+      const responseText = await response.text()
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('Empty response from server')
+      }
+
+      let data
+      try {
+        data = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError)
+        console.error('Response Text:', responseText)
+        throw new Error('Invalid response format from server')
+      }
+
+      if (!data.outline) {
+        throw new Error('Invalid response: missing outline data')
       }
 
       setGeneratedOutline(data.outline)
       setCurrentStep('outline')
       
     } catch (error) {
+      console.error('Generate outline error:', error)
       setError(error instanceof Error ? error.message : 'Failed to generate outline')
     } finally {
       setIsGenerating(false)
@@ -386,10 +609,39 @@ export default function AIBuilder() {
         })
       })
 
-      const data = await response.json()
-      
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate deck')
+        const errorText = await response.text()
+        let errorMessage = 'Failed to generate deck'
+        
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // If not JSON, use the text directly
+          errorMessage = errorText || errorMessage
+        }
+        
+        throw new Error(errorMessage)
+      }
+
+      // Check if response has content before parsing
+      const responseText = await response.text()
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('Empty response from server')
+      }
+
+      let data
+      try {
+        data = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError)
+        console.error('Response Text:', responseText)
+        throw new Error('Invalid response format from server')
+      }
+
+      if (!data.deck) {
+        throw new Error('Invalid response: missing deck data')
       }
 
       setGeneratedDeck(data.deck)
@@ -397,6 +649,7 @@ export default function AIBuilder() {
       setCurrentStep('customize')
       
     } catch (error) {
+      console.error('Generate deck error:', error)
       setError(error instanceof Error ? error.message : 'Failed to generate deck')
       setCurrentStep('theme')
     } finally {
@@ -539,6 +792,21 @@ export default function AIBuilder() {
 
     setLocalDeck(updatedDeck)
     setGeneratedDeck(updatedDeck)
+  }
+
+  const handleThemeChange = (themeId: string) => {
+    const currentDeck = localDeck || generatedDeck
+    if (!currentDeck) return
+
+    const updatedDeck = {
+      ...currentDeck,
+      theme: themeId
+    }
+
+    setLocalDeck(updatedDeck)
+    if (generatedDeck) {
+      setGeneratedDeck(updatedDeck)
+    }
   }
 
   const handleOpenAiRevise = (slideId: number) => {
@@ -1079,6 +1347,7 @@ export default function AIBuilder() {
           onExport={handleExportPDF}
           onShare={handleShare}
           onUpdateSlide={handleUpdateSlide}
+          onThemeChange={handleThemeChange}
         />
       </motion.div>
     )
@@ -1219,8 +1488,219 @@ export default function AIBuilder() {
     </motion.div>
   )
 
+  // NEW: Render startup input step
+  const renderStartupInput = () => (
+    <motion.div
+      key="startup-input"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.5 }}
+      className="max-w-4xl mx-auto"
+    >
+      <Card className="glass-card border-white/10">
+        <CardContent className="p-12">
+          <div className="text-center mb-8">
+            <motion.div
+              className="inline-flex items-center gap-3 mb-6 px-6 py-3 bg-purple-500/20 rounded-full border border-purple-500/30"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
+            >
+              <Sparkles className="w-6 h-6 text-purple-400" />
+              <span className="text-purple-300 font-semibold text-lg">AI Deck Builder</span>
+            </motion.div>
+            
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+              What&apos;s your startup about?
+            </h1>
+            <p className="text-xl text-white/70 max-w-2xl mx-auto">
+              Tell us about your startup and we&apos;ll generate intelligent questions to help build your perfect pitch deck.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <Textarea
+                value={startupInput}
+                onChange={(e) => setStartupInput(e.target.value)}
+                placeholder="Describe your startup, product, or business idea... The more detail you provide, the better questions we can generate for you."
+                className="w-full min-h-[120px] bg-white/10 border-white/20 text-white placeholder-white/50 rounded-xl p-4 text-lg resize-none focus:ring-2 focus:ring-purple-500/50"
+                rows={5}
+              />
+            </div>
+
+            <div className="flex flex-col items-center gap-4">
+              <Button
+                onClick={handleNext}
+                disabled={!startupInput.trim() || isGeneratingQuestions}
+                className="px-12 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold rounded-xl"
+              >
+                {isGeneratingQuestions ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                    Generating Questions...
+                  </>
+                ) : (
+                  <>
+                    Generate Questions <ArrowRight className="w-5 h-5 ml-3" />
+                  </>
+                )}
+              </Button>
+              
+              {isGeneratingQuestions && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-white/60 text-center"
+                >
+                  Please be patient, we are taking our time making you a high converting Web Deck Presentation
+                </motion.p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+
+  // NEW: Render interactive questions step
+  const renderInteractiveQuestions = () => (
+    <motion.div
+      key="questions"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.5 }}
+      className="max-w-6xl mx-auto"
+    >
+      <div className="text-center mb-8">
+        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+          Let&apos;s Build Your Pitch Deck
+        </h1>
+        <p className="text-xl text-white/70">
+          Review the AI-generated questions and answers. Accept, edit, or delete as needed.
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        {aiQuestions.map((question, index) => (
+          <motion.div
+            key={question.id}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+          >
+            <Card className="glass-card border-white/10">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-blue-400 font-bold text-sm">{index + 1}</span>
+                  </div>
+                  
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-white mb-3">
+                      {question.question}
+                    </h3>
+                    
+                    {question.isEditing ? (
+                      <div className="space-y-3">
+                        <Textarea
+                          defaultValue={question.userAnswer || question.aiAnswer}
+                          className="w-full bg-white/10 border-white/20 text-white placeholder-white/50 rounded-lg"
+                          rows={3}
+                          onBlur={(e) => handleAnswerChange(question.id, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                              handleAnswerChange(question.id, e.currentTarget.value)
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              const textarea = document.querySelector(`textarea[defaultValue="${question.userAnswer || question.aiAnswer}"]`) as HTMLTextAreaElement
+                              if (textarea) {
+                                handleAnswerChange(question.id, textarea.value)
+                              }
+                            }}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <Check className="w-4 h-4 mr-2" />
+                            Save
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                          <p className="text-white/90 leading-relaxed">
+                            {question.userAnswer || question.aiAnswer}
+                          </p>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          {!question.isAccepted && !question.userAnswer && (
+                            <Button
+                              size="sm"
+                              onClick={() => acceptAIAnswer(question.id)}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Accept
+                            </Button>
+                          )}
+                          
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => startEditingAnswer(question.id)}
+                            className="border-white/20 hover:bg-white/10"
+                          >
+                            <Edit3 className="w-4 h-4 mr-2" />
+                            {question.userAnswer || question.isAccepted ? 'Edit' : 'Customize'}
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => deleteQuestion(question.id)}
+                            className="border-red-400/20 hover:bg-red-500/10 text-red-400"
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="mt-8 flex justify-center">
+        <Button
+          onClick={handleNext}
+          disabled={aiQuestions.length === 0 || aiQuestions.every(q => !q.isAccepted && !q.userAnswer)}
+          className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 text-lg font-semibold rounded-xl"
+        >
+          Continue to Theme Selection <ArrowRight className="w-5 h-5 ml-3" />
+        </Button>
+      </div>
+    </motion.div>
+  )
+
   const renderCurrentStep = () => {
     switch (currentStep) {
+      case 'startup-input':
+        return renderStartupInput()
+      case 'questions':
+        return renderInteractiveQuestions()
       case 'mode':
         return renderModeSelection()
       case 'topic':
@@ -1238,7 +1718,7 @@ export default function AIBuilder() {
       case 'customize':
         return renderCustomization()
       default:
-        return renderModeSelection()
+        return renderStartupInput()
     }
   }
 

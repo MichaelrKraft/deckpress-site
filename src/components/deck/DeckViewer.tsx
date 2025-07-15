@@ -22,7 +22,8 @@ import {
   X,
   Sparkles,
   LayoutGrid,
-  Maximize2
+  Maximize2,
+  Palette
 } from 'lucide-react'
 import { GeneratedDeck, DECK_THEMES } from '@/lib/deck-generator'
 import { SlideContent } from '@/lib/openai'
@@ -32,6 +33,7 @@ import { SolutionSlideTemplate } from '../slides/SolutionSlideTemplate'
 import { MarketSlideTemplate } from '../slides/MarketSlideTemplate'
 import { DefaultSlideTemplate } from '../slides/DefaultSlideTemplate'
 import { QAChatSlideTemplate } from '../slides/QAChatSlideTemplate'
+import { ThemeSwitcher } from '../ui/ThemeSwitcher'
 
 interface DeckViewerProps {
   deck: GeneratedDeck
@@ -39,9 +41,10 @@ interface DeckViewerProps {
   onExport?: () => void
   onShare?: () => void
   onUpdateSlide?: (slideId: number, updatedSlide: SlideContent) => void
+  onThemeChange?: (themeId: string) => void
 }
 
-export function DeckViewer({ deck, onEdit, onExport, onShare, onUpdateSlide }: DeckViewerProps) {
+export function DeckViewer({ deck, onEdit, onExport, onShare, onUpdateSlide, onThemeChange }: DeckViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [showAiChat, setShowAiChat] = useState(false)
   
@@ -54,7 +57,9 @@ export function DeckViewer({ deck, onEdit, onExport, onShare, onUpdateSlide }: D
   const [isAiProcessing, setIsAiProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'single' | 'overview'>('single')
-  const theme = DECK_THEMES[deck.theme] || DECK_THEMES.modern
+  const [editMode, setEditMode] = useState(false)
+  const [currentTheme, setCurrentTheme] = useState(deck.theme)
+  const theme = DECK_THEMES[currentTheme] || DECK_THEMES.modern
 
   const handlePrevious = () => {
     setCurrentSlide(prev => Math.max(0, prev - 1))
@@ -62,6 +67,13 @@ export function DeckViewer({ deck, onEdit, onExport, onShare, onUpdateSlide }: D
 
   const handleNext = () => {
     setCurrentSlide(prev => Math.min(deck.slides.length - 1, prev + 1))
+  }
+
+  const handleThemeChange = (themeId: string) => {
+    setCurrentTheme(themeId)
+    if (onThemeChange) {
+      onThemeChange(themeId)
+    }
   }
 
   const handleAiImprove = async () => {
@@ -131,6 +143,21 @@ export function DeckViewer({ deck, onEdit, onExport, onShare, onUpdateSlide }: D
         </div>
         
         <div className="flex items-center gap-3">
+          <ThemeSwitcher
+            currentTheme={currentTheme}
+            onThemeChange={handleThemeChange}
+            variant="compact"
+            className="mr-2"
+          />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setEditMode(!editMode)}
+            className={editMode ? 'bg-green-500/20 border-green-400' : ''}
+          >
+            <Edit3 className="w-4 h-4 mr-2" />
+            {editMode ? 'View Mode' : 'Edit Mode'}
+          </Button>
           <Button 
             variant="outline" 
             size="sm" 
@@ -341,6 +368,7 @@ export function DeckViewer({ deck, onEdit, onExport, onShare, onUpdateSlide }: D
                       onEdit={onEdit} 
                       onOpenAiChat={() => toggleAiChat(true)}
                       onUpdateSlide={(updatedSlide) => onUpdateSlide?.(updatedSlide.id, updatedSlide)}
+                      editMode={editMode}
                     />
                   </motion.div>
                 </AnimatePresence>
@@ -380,6 +408,7 @@ export function DeckViewer({ deck, onEdit, onExport, onShare, onUpdateSlide }: D
                     onOpenAiChat={() => toggleAiChat(true)}
                     onUpdateSlide={(updatedSlide) => onUpdateSlide?.(updatedSlide.id, updatedSlide)}
                     isPreview={false}
+                    editMode={editMode}
                   />
                 </div>
                 
@@ -425,15 +454,17 @@ interface SlideRendererProps {
   onOpenAiChat?: () => void
   onUpdateSlide?: (updatedSlide: SlideContent) => void
   isPreview?: boolean
+  editMode?: boolean
 }
 
-function SlideRenderer({ slide, theme, onEdit, onOpenAiChat, onUpdateSlide, isPreview = false }: SlideRendererProps) {
+function SlideRenderer({ slide, theme, onEdit, onOpenAiChat, onUpdateSlide, isPreview = false, editMode = false }: SlideRendererProps) {
   // Select the appropriate template based on slide type
   const getSlideTemplate = () => {
     const commonProps = {
       slide,
       theme,
       onUpdateSlide,
+      editMode,
       onAiImprove: (content: string, field: string) => {
         // Handle AI improvement for specific fields
         console.log(`AI improve requested for ${field}:`, content)

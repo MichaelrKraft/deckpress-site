@@ -41,6 +41,14 @@ export interface SlideContent {
     headline: string
     subheadline?: string
     bullets: string[]
+    featureCards?: Array<{
+      id: string
+      icon: string
+      iconColor?: string
+      title: string
+      description: string
+      isHighlighted?: boolean
+    }>
     metrics?: Array<{
       label: string
       value: string
@@ -216,7 +224,12 @@ class OpenAIService {
       }`
     }
 
-    return 'Demo content generated for: ' + prompt.substring(0, 100) + '...'
+    // Always return valid JSON for any other prompt
+    return `{
+      "error": "Demo mode active",
+      "message": "This is demo content. Please provide a valid OpenAI API key for full functionality.",
+      "prompt": "${prompt.substring(0, 100)}..."
+    }`
   }
 
   async generateOutline(context: StartupContext): Promise<PitchDeckOutline> {

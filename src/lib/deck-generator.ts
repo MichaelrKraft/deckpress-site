@@ -147,6 +147,112 @@ export const DECK_THEMES: Record<string, DeckTheme> = {
       shadow: '0 4px 6px -1px rgba(5, 150, 105, 0.1)',
       gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
     }
+  },
+  // NEW 21st DEV THEMES
+  neonCyberpunk: {
+    id: 'neonCyberpunk',
+    name: 'Neon Cyberpunk',
+    colors: {
+      primary: '#00f5ff',
+      secondary: '#ff0080',
+      accent: '#39ff14',
+      text: '#ffffff',
+      background: '#0a0a0f',
+      surface: 'rgba(15, 15, 25, 0.8)'
+    },
+    fonts: {
+      heading: 'JetBrains Mono, monospace',
+      body: 'Inter, sans-serif'
+    },
+    styles: {
+      borderRadius: '0px',
+      shadow: '0 0 20px rgba(0, 245, 255, 0.3), inset 0 0 20px rgba(255, 0, 128, 0.1)',
+      gradient: 'linear-gradient(135deg, #00f5ff 0%, #ff0080 50%, #39ff14 100%)'
+    }
+  },
+  glassMorphism: {
+    id: 'glassMorphism',
+    name: 'Glass Morphism',
+    colors: {
+      primary: '#8b5cf6',
+      secondary: '#06b6d4',
+      accent: '#f59e0b',
+      text: '#1f2937',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      surface: 'rgba(255, 255, 255, 0.1)'
+    },
+    fonts: {
+      heading: 'Inter, sans-serif',
+      body: 'Inter, sans-serif'
+    },
+    styles: {
+      borderRadius: '20px',
+      shadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+      gradient: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)'
+    }
+  },
+  gradientMesh: {
+    id: 'gradientMesh',
+    name: 'Gradient Mesh',
+    colors: {
+      primary: '#f093fb',
+      secondary: '#f5576c',
+      accent: '#4facfe',
+      text: '#2d3748',
+      background: 'linear-gradient(45deg, #f093fb 0%, #f5576c 25%, #4facfe 50%, #00f2fe 75%, #f093fb 100%)',
+      surface: 'rgba(255, 255, 255, 0.95)'
+    },
+    fonts: {
+      heading: 'Inter, sans-serif',
+      body: 'Inter, sans-serif'
+    },
+    styles: {
+      borderRadius: '24px',
+      shadow: '0 20px 40px rgba(240, 147, 251, 0.4)',
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)'
+    }
+  },
+  retroTerminal: {
+    id: 'retroTerminal',
+    name: 'Retro Terminal',
+    colors: {
+      primary: '#00ff00',
+      secondary: '#ffff00',
+      accent: '#ff8c00',
+      text: '#00ff00',
+      background: '#000000',
+      surface: '#001100'
+    },
+    fonts: {
+      heading: 'Courier New, monospace',
+      body: 'Courier New, monospace'
+    },
+    styles: {
+      borderRadius: '0px',
+      shadow: '0 0 10px rgba(0, 255, 0, 0.5), inset 0 0 10px rgba(0, 255, 0, 0.1)',
+      gradient: 'linear-gradient(90deg, #00ff00 0%, #ffff00 50%, #ff8c00 100%)'
+    }
+  },
+  brutalistModern: {
+    id: 'brutalistModern',
+    name: 'Brutalist Modern',
+    colors: {
+      primary: '#ff6b6b',
+      secondary: '#000000',
+      accent: '#ffd93d',
+      text: '#000000',
+      background: '#ffffff',
+      surface: '#f8f9fa'
+    },
+    fonts: {
+      heading: 'Arial Black, sans-serif',
+      body: 'Helvetica, sans-serif'
+    },
+    styles: {
+      borderRadius: '0px',
+      shadow: '8px 8px 0px #000000',
+      gradient: 'linear-gradient(45deg, #ff6b6b 0%, #ffd93d 100%)'
+    }
   }
 }
 

@@ -26,6 +26,7 @@ interface EditableTextProps {
   enableFormatting?: boolean
   variant?: 'h1' | 'h2' | 'h3' | 'p' | 'span'
   onAiImprove?: (content: string) => void
+  editable?: boolean
 }
 
 export function EditableText({
@@ -36,7 +37,8 @@ export function EditableText({
   multiline = false,
   enableFormatting = true,
   variant = 'p',
-  onAiImprove
+  onAiImprove,
+  editable = true
 }: EditableTextProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [showToolbar, setShowToolbar] = useState(false)
@@ -50,7 +52,7 @@ export function EditableText({
   }, [content])
 
   const handleClick = useCallback(() => {
-    if (!isEditing) {
+    if (!isEditing && editable) {
       setIsEditing(true)
       setShowToolbar(enableFormatting)
       setTimeout(() => {
@@ -66,7 +68,7 @@ export function EditableText({
         }
       }, 0)
     }
-  }, [isEditing, enableFormatting])
+  }, [isEditing, enableFormatting, editable])
 
   const handleBlur = useCallback((e: React.FocusEvent) => {
     // Don't blur if clicking on toolbar
@@ -168,7 +170,9 @@ export function EditableText({
           ${className}
           ${isEditing 
             ? 'outline-none ring-2 ring-blue-400/50 bg-white/5 rounded-lg px-2 py-1' 
-            : 'hover:bg-white/5 hover:rounded-lg hover:px-2 hover:py-1 transition-all cursor-pointer'
+            : editable 
+              ? 'hover:bg-white/5 hover:rounded-lg hover:px-2 hover:py-1 transition-all cursor-pointer'
+              : ''
           }
           ${!localContent && !isEditing ? 'text-white/50' : ''}
         `}
@@ -179,7 +183,7 @@ export function EditableText({
       />
 
       {/* Hover Indicators */}
-      {!isEditing && (
+      {!isEditing && editable && (
         <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
           {onAiImprove && (
             <motion.button

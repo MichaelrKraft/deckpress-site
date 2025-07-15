@@ -44,14 +44,23 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Generate outline error:', error)
     
-    // Return appropriate error message
+    // Return appropriate error message with consistent structure
     const errorMessage = error instanceof Error 
       ? error.message 
       : 'Failed to generate outline'
 
     return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
+      { 
+        success: false,
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      },
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     )
   }
 }

@@ -10,8 +10,14 @@ export async function POST(request: NextRequest) {
     
     if (!topic || !industry || !audience || !slideCount) {
       return NextResponse.json(
-        { error: 'Missing required fields: topic, industry, audience, slideCount' },
-        { status: 400 }
+        { 
+          success: false,
+          error: 'Missing required fields: topic, industry, audience, slideCount' 
+        },
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
       )
     }
 
@@ -48,8 +54,15 @@ export async function POST(request: NextRequest) {
       : 'Failed to generate deck'
 
     return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
+      { 
+        success: false,
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      },
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     )
   }
 }

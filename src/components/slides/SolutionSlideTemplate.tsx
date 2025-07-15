@@ -10,15 +10,17 @@ import { EditableText } from '@/components/ui/EditableText'
 import { EditableList } from '@/components/ui/EditableList'
 import { EditableIcon } from '@/components/ui/EditableIcon'
 import { EditableGraphics } from '@/components/ui/EditableGraphics'
+import { EditableFeatureCard, FeatureCard } from '@/components/ui/EditableFeatureCard'
 
 interface SolutionSlideTemplateProps {
   slide: SlideContent
   theme: any
   onUpdateSlide?: (updatedSlide: SlideContent) => void
   onAiImprove?: (content: string, field: string) => void
+  editMode?: boolean
 }
 
-export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove }: SolutionSlideTemplateProps) {
+export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove, editMode = false }: SolutionSlideTemplateProps) {
   const { content } = slide
 
   // Update handlers for slide content
@@ -74,6 +76,38 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
     const updatedSlide = {
       ...slide,
       title: newTitle
+    }
+    onUpdateSlide(updatedSlide)
+  }
+
+  // Convert bullets to feature cards
+  const getFeatureCards = (): FeatureCard[] => {
+    if (content.featureCards) {
+      return content.featureCards
+    }
+    
+    // Convert bullets to feature cards for backward compatibility
+    return (content.bullets || []).map((bullet, index) => ({
+      id: `feature_${index}`,
+      icon: ['Rocket', 'Zap', 'CheckCircle', 'Star', 'Target', 'Award'][index % 6],
+      iconColor: ['text-green-400', 'text-blue-400', 'text-purple-400', 'text-orange-400', 'text-cyan-400', 'text-pink-400'][index % 6],
+      title: bullet.split(':')[0] || bullet.slice(0, 30),
+      description: bullet.includes(':') ? bullet.split(':').slice(1).join(':').trim() : bullet,
+      isHighlighted: index === 0
+    }))
+  }
+
+  const handleFeaturesChange = (newFeatures: FeatureCard[]) => {
+    if (!onUpdateSlide) return
+    
+    const updatedSlide = {
+      ...slide,
+      content: {
+        ...content,
+        featureCards: newFeatures,
+        // Keep bullets for backward compatibility
+        bullets: newFeatures.map(f => `${f.title}: ${f.description}`)
+      }
     }
     onUpdateSlide(updatedSlide)
   }
@@ -152,6 +186,7 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
               variant="h1"
               enableFormatting={true}
               onAiImprove={(content) => onAiImprove?.(content, 'title')}
+              editable={editMode}
             />
           </motion.div>
 
@@ -169,6 +204,7 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
               multiline={true}
               enableFormatting={true}
               onAiImprove={(content) => onAiImprove?.(content, 'headline')}
+              editable={editMode}
             />
           </motion.div>
         </motion.div>
@@ -194,14 +230,35 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
               />
               Key Features
             </h3>
-            <EditableList
-              items={content.bullets || ['Describe your first key feature...']}
-              onChange={(newBullets) => updateSlideContent('bullets', newBullets)}
-              variant="check"
-              className="space-y-2"
-              onAiImprove={(items) => onAiImprove?.(items.join('\n'), 'bullets')}
-              maxItems={6}
-            />
+            {editMode ? (
+              <EditableFeatureCard
+                features={getFeatureCards()}
+                onChange={handleFeaturesChange}
+                onAiImprove={(features) => onAiImprove?.(features.map(f => `${f.title}: ${f.description}`).join('\n'), 'features')}
+                maxFeatures={6}
+                variant="card"
+                className="mt-4"
+              />
+            ) : (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {getFeatureCards().map((feature, index) => {
+                  const IconComponent = require('lucide-react')[feature.icon] || require('lucide-react').Star
+                  return (
+                    <div key={feature.id} className="glass-card p-6 rounded-xl border border-white/10">
+                      <div className="text-center">
+                        <div className="mb-4 flex justify-center">
+                          <div className="w-12 h-12 bg-gradient-to-br from-white/10 to-white/5 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/10">
+                            <IconComponent className={`w-6 h-6 ${feature.iconColor || 'text-blue-400'}`} />
+                          </div>
+                        </div>
+                        <h4 className="text-lg font-semibold text-white mb-2">{feature.title}</h4>
+                        <p className="text-white/70 text-sm leading-relaxed">{feature.description}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </motion.div>
 
           {/* Benefits & Metrics */}
@@ -262,6 +319,7 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
                   multiline={true}
                   enableFormatting={true}
                   onAiImprove={(content) => onAiImprove?.(content, 'subheadline')}
+                  editable={editMode}
                 />
                 <div className="flex items-center gap-2 text-green-400">
                   <CheckCircle className="w-5 h-5" />
@@ -290,6 +348,7 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
               onChange={(graphics) => updateSlideGraphics('solutionDemo', graphics)}
               className="mx-auto mb-4"
               onAiImprove={(context) => onAiImprove?.(context, 'solutionDemo')}
+              editable={editMode}
             />
             <h4 className="text-white font-semibold mb-2">Solution Demo</h4>
             <p className="text-white/60 text-sm">Show your solution in action with screenshots or diagrams</p>
@@ -305,6 +364,7 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
               onChange={(graphics) => updateSlideGraphics('benefitsChart', graphics)}
               className="mx-auto mb-4"
               onAiImprove={(context) => onAiImprove?.(context, 'benefitsChart')}
+              editable={editMode}
             />
             <h4 className="text-white font-semibold mb-2">Benefits Overview</h4>
             <p className="text-white/60 text-sm">Illustrate the key benefits with visuals or infographics</p>
@@ -334,6 +394,7 @@ export function SolutionSlideTemplate({ slide, theme, onUpdateSlide, onAiImprove
               multiline={true}
               enableFormatting={true}
               onAiImprove={(content) => onAiImprove?.(content, 'callout')}
+              editable={editMode}
             />
           </motion.div>
         </motion.div>
