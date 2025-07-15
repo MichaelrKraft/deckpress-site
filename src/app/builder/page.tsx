@@ -173,6 +173,30 @@ const THEMES = [
   }
 ]
 
+// Helper function to extract industry from description
+function extractIndustryFromDescription(description: string): string {
+  if (!description) return 'Technology'
+  
+  const desc = description.toLowerCase()
+  
+  // Check for specific industry keywords
+  if (desc.includes('ai') || desc.includes('artificial intelligence') || desc.includes('machine learning') || desc.includes('ml')) return 'Artificial Intelligence'
+  if (desc.includes('fintech') || desc.includes('finance') || desc.includes('banking') || desc.includes('payment')) return 'FinTech'
+  if (desc.includes('health') || desc.includes('medical') || desc.includes('healthcare') || desc.includes('hospital')) return 'Healthcare'
+  if (desc.includes('ecommerce') || desc.includes('e-commerce') || desc.includes('marketplace') || desc.includes('retail')) return 'E-commerce'
+  if (desc.includes('saas') || desc.includes('software') || desc.includes('platform') || desc.includes('app')) return 'SaaS'
+  if (desc.includes('crypto') || desc.includes('blockchain') || desc.includes('bitcoin') || desc.includes('ethereum')) return 'Blockchain'
+  if (desc.includes('education') || desc.includes('learning') || desc.includes('school') || desc.includes('university')) return 'EdTech'
+  if (desc.includes('food') || desc.includes('restaurant') || desc.includes('delivery') || desc.includes('kitchen')) return 'Food & Beverage'
+  if (desc.includes('real estate') || desc.includes('property') || desc.includes('housing') || desc.includes('rental')) return 'Real Estate'
+  if (desc.includes('energy') || desc.includes('solar') || desc.includes('renewable') || desc.includes('green')) return 'CleanTech'
+  if (desc.includes('travel') || desc.includes('hotel') || desc.includes('booking') || desc.includes('tourism')) return 'Travel'
+  if (desc.includes('game') || desc.includes('gaming') || desc.includes('entertainment') || desc.includes('media')) return 'Gaming & Entertainment'
+  
+  // Default fallback
+  return 'Technology'
+}
+
 export default function AIBuilder() {
   const [currentStep, setCurrentStep] = useState('startup-input')
   const [selectedMode, setSelectedMode] = useState('generate')
@@ -237,41 +261,24 @@ export default function AIBuilder() {
     setError(null)
 
     try {
-      // Generate intelligent questions based on the startup input
-      const questions = [
-        {
-          id: 'problem',
-          question: 'What specific problem does your startup solve?',
-          aiAnswer: `Based on "${startupInput}", your startup addresses the need for...`
-        },
-        {
-          id: 'solution',
-          question: 'How does your solution uniquely solve this problem?',
-          aiAnswer: `Your innovative approach involves...`
-        },
-        {
-          id: 'market',
-          question: 'Who is your target market and how large is it?',
-          aiAnswer: `The target market consists of...`
-        },
-        {
-          id: 'business-model',
-          question: 'How will you make money?',
-          aiAnswer: `Your revenue model is based on...`
-        },
-        {
-          id: 'ask',
-          question: 'What are you asking for from investors?',
-          aiAnswer: `You are seeking funding to...`
-        }
-      ]
+      // Call API to generate intelligent questions with AI answers
+      const response = await fetch('/api/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startupDescription: startupInput
+        })
+      })
 
-      // Simulate AI processing time
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate questions')
+      }
 
-      const generatedQuestions = questions.map(q => ({
+      const data = await response.json()
+      
+      const generatedQuestions = data.questions.map((q: any) => ({
         ...q,
-        aiAnswer: `AI-generated answer for "${q.question}" based on your startup: ${startupInput}`,
         isAccepted: false,
         isEditing: false
       }))
@@ -282,7 +289,8 @@ export default function AIBuilder() {
       updateFormData('description', startupInput)
       setCurrentStep('questions')
     } catch (error) {
-      setError('Failed to generate questions. Please try again.')
+      console.error('Generate questions error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to generate questions. Please try again.')
     } finally {
       setIsGeneratingQuestions(false)
     }
@@ -315,9 +323,13 @@ export default function AIBuilder() {
     ))
   }
 
-  // Delete question
-  const deleteQuestion = (questionId: string) => {
-    setAiQuestions(prev => prev.filter(q => q.id !== questionId))
+  // Clear answer (not delete entire question)
+  const clearAnswer = (questionId: string) => {
+    setAiQuestions(prev => prev.map(q => 
+      q.id === questionId 
+        ? { ...q, userAnswer: '', aiAnswer: '', isAccepted: false, isEditing: false }
+        : q
+    ))
   }
 
   // Proceed to deck generation
@@ -597,17 +609,30 @@ export default function AIBuilder() {
     setCurrentStep('generate')
     
     try {
+      // Ensure industry is set - extract from description or use default
+      const industry = formData.industry || extractIndustryFromDescription(formData.description || formData.topic) || 'Technology'
+      
+      console.log('Generating deck with data:', {
+        topic: formData.description || formData.topic,
+        industry: industry,
+        audience: formData.audience,
+        slideCount: formData.slideCount,
+        selectedTheme: formData.selectedTheme
+      })
+
       const response = await fetch('/api/generate-deck', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic: formData.topic,
-          industry: formData.industry,
+          topic: formData.description || formData.topic, // Use description if available
+          industry: industry,
           audience: formData.audience,
           slideCount: formData.slideCount,
           selectedTheme: formData.selectedTheme
         })
       })
+
+      console.log('API Response status:', response.status)
 
       // Check if response is ok before trying to parse JSON
       if (!response.ok) {
@@ -627,6 +652,8 @@ export default function AIBuilder() {
 
       // Check if response has content before parsing
       const responseText = await response.text()
+      console.log('API Response text length:', responseText.length)
+      
       if (!responseText || responseText.trim() === '') {
         throw new Error('Empty response from server')
       }
@@ -634,6 +661,7 @@ export default function AIBuilder() {
       let data
       try {
         data = JSON.parse(responseText)
+        console.log('Parsed deck data:', data)
       } catch (parseError) {
         console.error('JSON Parse Error:', parseError)
         console.error('Response Text:', responseText)
@@ -641,9 +669,11 @@ export default function AIBuilder() {
       }
 
       if (!data.deck) {
+        console.error('Missing deck in response:', data)
         throw new Error('Invalid response: missing deck data')
       }
 
+      console.log('Successfully generated deck:', data.deck)
       setGeneratedDeck(data.deck)
       setLocalDeck(data.deck)
       setCurrentStep('customize')
@@ -1666,11 +1696,11 @@ export default function AIBuilder() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => deleteQuestion(question.id)}
+                            onClick={() => clearAnswer(question.id)}
                             className="border-red-400/20 hover:bg-red-500/10 text-red-400"
                           >
                             <X className="w-4 h-4 mr-2" />
-                            Delete
+                            Clear Answer
                           </Button>
                         </div>
                       </div>

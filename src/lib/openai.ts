@@ -95,7 +95,7 @@ export interface StartupContext {
 }
 
 class OpenAIService {
-  private async callOpenAI(prompt: string, maxTokens: number = 2000): Promise<string> {
+  public async callOpenAI(prompt: string, maxTokens: number = 2000): Promise<string> {
     // Demo mode fallback when no real API key
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'demo_key_for_testing') {
       console.log('Demo mode: Using fallback content generation')
