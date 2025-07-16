@@ -32,7 +32,7 @@ export function getTemplatesByFilter(filter: {
   fundingStage?: string[]
   difficulty?: string
 }): DeckTemplate[] {
-  return Object.values(DECK_TEMPLATES).filter(template => {
+  return (Object.values(DECK_TEMPLATES) as DeckTemplate[]).filter(template => {
     if (filter.targetAudience?.length && 
         !filter.targetAudience.some(audience => template.targetAudience.includes(audience))) {
       return false
@@ -62,7 +62,7 @@ export function getRecommendedTemplates(userContext: {
   fundingStage?: string
   experience?: string
 }): DeckTemplate[] {
-  const templates = Object.values(DECK_TEMPLATES)
+  const templates = Object.values(DECK_TEMPLATES) as DeckTemplate[]
   
   // Score templates based on relevance
   const scoredTemplates = templates.map(template => {
