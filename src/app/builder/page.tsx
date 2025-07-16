@@ -334,14 +334,16 @@ export default function AIBuilder() {
 
   // Proceed to deck generation
   const proceedToDeckGeneration = () => {
-    // Compile all accepted answers into formData
+    // Create a structured description that preserves the original startup description
+    // while incorporating Q&A insights without overwhelming the AI
     const answeredQuestions = aiQuestions.filter(q => q.isAccepted || q.userAnswer)
-    const compiledInfo = answeredQuestions.map(q => 
-      `${q.question}: ${q.userAnswer || q.aiAnswer}`
-    ).join('\n\n')
     
-    updateFormData('topic', startupInput)
-    updateFormData('description', `${startupInput}\n\n${compiledInfo}`)
+    // Create a concise summary rather than concatenating everything
+    const insights = answeredQuestions.map(q => q.userAnswer || q.aiAnswer).join('. ')
+    const enhancedDescription = `${startupInput}. Key insights: ${insights}`
+    
+    updateFormData('topic', enhancedDescription)
+    updateFormData('description', enhancedDescription)
     
     setCurrentStep('theme')
   }

@@ -197,29 +197,117 @@ class OpenAIService {
       }`
     }
 
-    if (prompt.includes('slide content')) {
+    if (prompt.includes('slide content') || prompt.includes('Generate content for this pitch deck slide')) {
+      // Extract context from the prompt to generate more relevant demo content
+      const isTitle = prompt.includes('Type: title')
+      const isProblem = prompt.includes('Type: problem')
+      const isSolution = prompt.includes('Type: solution') 
+      const isMarket = prompt.includes('Type: market')
+      
+      if (isTitle) {
+        return `{
+          "id": 1,
+          "title": "AI Patent Platform",
+          "type": "title",
+          "content": {
+            "headline": "Revolutionizing Patent Filing with AI",
+            "subheadline": "Get patents in minutes, not months",
+            "bullets": [
+              "AI-powered patent drafting in under 5 minutes",
+              "90% faster than traditional patent attorneys", 
+              "Affordable patent protection for everyone"
+            ],
+            "callout": "Join the patent revolution - fast, affordable, AI-powered"
+          }
+        }`
+      }
+      
+      if (isProblem) {
+        return `{
+          "id": 2,
+          "title": "The Patent Problem",
+          "type": "problem",
+          "content": {
+            "headline": "Patent Filing is Broken",
+            "subheadline": "Current patent process creates massive barriers for innovators",
+            "bullets": [
+              "Average patent takes 18-24 months to file",
+              "Patent attorneys charge $10,000-$15,000 per application",
+              "90% of inventors never get patent protection",
+              "Complex legal language prevents innovation"
+            ],
+            "metrics": [
+              {"label": "Average Cost", "value": "$12,500", "context": "Per patent application"},
+              {"label": "Time to File", "value": "18 months", "context": "Industry average"},
+              {"label": "Success Rate", "value": "10%", "context": "Inventors who get patents"}
+            ],
+            "callout": "Innovation is being stifled by an outdated, expensive system"
+          }
+        }`
+      }
+      
+      if (isSolution) {
+        return `{
+          "id": 3,
+          "title": "Our AI Solution",
+          "type": "solution",
+          "content": {
+            "headline": "AI-Powered Patent Platform",
+            "subheadline": "Revolutionary technology that makes patents accessible to everyone",
+            "bullets": [
+              "AI analyzes your invention and generates patent application",
+              "Natural language interface - no legal expertise required",
+              "Automated prior art search and claim optimization",
+              "Direct filing with USPTO through our platform"
+            ],
+            "metrics": [
+              {"label": "Filing Time", "value": "5 minutes", "context": "From idea to application"},
+              {"label": "Cost Reduction", "value": "95%", "context": "vs traditional attorneys"},
+              {"label": "Success Rate", "value": "85%", "context": "Patent approvals"}
+            ],
+            "callout": "Transform your ideas into protected intellectual property instantly"
+          }
+        }`
+      }
+      
+      if (isMarket) {
+        return `{
+          "id": 4,
+          "title": "Market Opportunity",
+          "type": "market",
+          "content": {
+            "headline": "Massive Patent Market Ready for Disruption",
+            "subheadline": "Multi-billion dollar opportunity in intellectual property services",
+            "bullets": [
+              "Global patent market valued at $4.2B annually",
+              "Growing 8.2% year-over-year driven by innovation",
+              "Underserved market of 50M+ inventors worldwide",
+              "AI and automation creating new patent categories"
+            ],
+            "metrics": [
+              {"label": "Market Size", "value": "$4.2B", "context": "Global patent services market"},
+              {"label": "Growth Rate", "value": "8.2%", "context": "Annual market growth"},
+              {"label": "Target Market", "value": "50M+", "context": "Potential inventors"}
+            ],
+            "callout": "First-mover advantage in AI-powered patent services"
+          }
+        }`
+      }
+      
+      // Default slide content
       return `{
         "id": 1,
-        "title": "Revolutionary AI Platform",
-        "type": "title",
+        "title": "Key Information",
+        "type": "default",
         "content": {
-          "headline": "Transforming the Future with AI Innovation",
-          "subheadline": "Next-generation technology for tomorrow's challenges",
+          "headline": "Essential Business Information",
+          "subheadline": "Critical details about our startup and market opportunity",
           "bullets": [
-            "Cutting-edge AI technology that delivers real results",
-            "Proven solution addressing critical market needs",
-            "Scalable platform built for rapid growth"
+            "Strong product-market fit with proven demand",
+            "Experienced team with domain expertise",
+            "Clear path to profitability and scale"
           ],
-          "metrics": [
-            {"label": "Market Size", "value": "$50B", "context": "Total addressable market"},
-            {"label": "Growth Rate", "value": "300%", "context": "Year-over-year growth"},
-            {"label": "User Satisfaction", "value": "95%", "context": "Customer satisfaction score"}
-          ],
-          "callout": "Join the AI revolution and transform your industry",
-          "nextSteps": [
-            "Massive market opportunity ready for disruption",
-            "Strong technology foundation for sustainable growth"
-          ]
+          "callout": "Positioned for significant growth and market impact"
         }
       }`
     }
