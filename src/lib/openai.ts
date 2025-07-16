@@ -128,6 +128,43 @@ class OpenAIService {
   }
 
   private generateDemoContent(prompt: string): string {
+    // Handle slide improvement requests
+    if (prompt.includes('DECK-WIDE IMPROVEMENT') || prompt.includes('Improve this entire slide')) {
+      const isColorChange = prompt.toLowerCase().includes('red') && prompt.toLowerCase().includes('purple')
+      const isTextImprovement = prompt.toLowerCase().includes('more compelling') || prompt.toLowerCase().includes('better')
+      
+      // Extract slide info from prompt if available
+      let slideTitle = 'Enhanced Slide'
+      let slideType = 'default'
+      
+      const titleMatch = prompt.match(/Title: "([^"]+)"/)
+      if (titleMatch) slideTitle = titleMatch[1]
+      
+      const typeMatch = prompt.match(/Type: (\w+)/)
+      if (typeMatch) slideType = typeMatch[1]
+      
+      // Generate appropriate demo improvement
+      return `{
+        "id": 1,
+        "title": "${slideTitle}${isTextImprovement ? ' - Enhanced' : ''}",
+        "type": "${slideType}",
+        "content": {
+          "headline": "${isColorChange ? 'Patent Filing Revolution' : 'Enhanced Business Strategy'}",
+          "subheadline": "${isColorChange ? 'Transform your patent process with AI technology' : 'Optimized approach for maximum impact'}",
+          "bullets": [
+            "${isColorChange ? 'AI-powered patent drafting technology' : 'Strategic market positioning'}",
+            "${isColorChange ? 'Streamlined filing process' : 'Competitive advantage development'}",
+            "${isColorChange ? 'Cost-effective patent protection' : 'Scalable business model'}"
+          ],
+          "metrics": [
+            {"label": "Processing Time", "value": "5 min", "context": "Patent application"},
+            {"label": "Cost Savings", "value": "95%", "context": "vs traditional methods"}
+          ],
+          "callout": "${isColorChange ? 'Revolutionary patent technology powered by advanced AI' : 'Strategic advantage through innovative approach'}"
+        }
+      }`
+    }
+    
     // Simple demo content generation based on prompt keywords
     if (prompt.includes('outline')) {
       return `{

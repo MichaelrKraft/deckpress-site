@@ -78,8 +78,19 @@ export function DeckViewer({ deck, onEdit, onExport, onShare, onUpdateSlide, onT
 
   const handleAiImprove = async () => {
     console.log('handleAiImprove called with prompt:', aiPrompt)
-    if (!aiPrompt.trim() || !onUpdateSlide) {
-      console.log('Early return - no prompt or onUpdateSlide')
+    console.log('onUpdateSlide available:', !!onUpdateSlide)
+    console.log('deck.context:', deck.context)
+    console.log('deck.slides.length:', deck.slides.length)
+    
+    if (!aiPrompt.trim()) {
+      console.log('Early return - no prompt')
+      setError('Please enter a request for AI improvement')
+      return
+    }
+    
+    if (!onUpdateSlide) {
+      console.log('Early return - no onUpdateSlide callback')
+      setError('Update functionality not available')
       return
     }
 
@@ -92,37 +103,57 @@ export function DeckViewer({ deck, onEdit, onExport, onShare, onUpdateSlide, onT
       
       for (let i = 0; i < deck.slides.length; i++) {
         const slide = deck.slides[i]
+        console.log(`Processing slide ${i + 1}: ${slide.title}`)
+        
+        const requestBody = {
+          slide: slide,
+          userPrompt: aiPrompt,
+          context: deck.context || {
+            topic: 'AI Platform',
+            industry: 'Technology',
+            audience: 'investors',
+            slideCount: deck.slides.length
+          },
+          isDeckWide: true
+        }
+        
+        console.log('API Request body:', requestBody)
         
         const response = await fetch('/api/improve-slide-content', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            slide: slide,
-            userPrompt: aiPrompt,
-            context: deck.context,
-            isDeckWide: true
-          })
+          body: JSON.stringify(requestBody)
         })
 
+        console.log(`API Response status for slide ${i + 1}:`, response.status)
+        
         const data = await response.json()
+        console.log(`API Response data for slide ${i + 1}:`, data)
         
         if (!response.ok) {
           throw new Error(data.error || `Failed to improve slide ${i + 1}`)
         }
 
+        if (!data.improvedSlide) {
+          throw new Error(`No improved slide data received for slide ${i + 1}`)
+        }
+
         updatedSlides.push(data.improvedSlide)
         
         // Update each slide as it's processed
+        console.log(`Updating slide ${slide.id} with improved content`)
         onUpdateSlide(slide.id, data.improvedSlide)
         
         // Small delay to avoid overwhelming the API
         await new Promise(resolve => setTimeout(resolve, 500))
       }
 
+      console.log('All slides processed successfully')
       setShowAiChat(false)
       setAiPrompt('')
       
     } catch (error) {
+      console.error('AI improvement error:', error)
       setError(error instanceof Error ? error.message : 'Failed to improve deck')
     } finally {
       setIsAiProcessing(false)
