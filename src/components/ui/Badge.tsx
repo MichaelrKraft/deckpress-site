@@ -4,7 +4,7 @@ import React from 'react'
 import { cn } from '@/lib/utils'
 
 interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'secondary' | 'success' | 'warning' | 'error'
+  variant?: 'default' | 'secondary' | 'success' | 'warning' | 'error' | 'outline'
   size?: 'sm' | 'md' | 'lg'
   children: React.ReactNode
 }
@@ -18,7 +18,8 @@ const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
       secondary: "bg-slate-800 text-slate-200 border border-slate-700",
       success: "bg-green-500/20 text-green-400 border border-green-500/30",
       warning: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
-      error: "bg-red-500/20 text-red-400 border border-red-500/30"
+      error: "bg-red-500/20 text-red-400 border border-red-500/30",
+      outline: "bg-transparent text-white/70 border border-white/30"
     }
     
     const sizes = {

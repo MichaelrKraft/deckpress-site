@@ -44,6 +44,8 @@ import {
   ArrowRight,
   Check
 } from 'lucide-react'
+import { TemplateSelector } from '@/components/templates/TemplateSelector'
+import { DeckTemplate } from '@/lib/deck-templates'
 import { GradientButton } from '@/components/ui/gradient-button'
 import GuidedInput from '@/components/input/GuidedInput'
 import InteractiveOutlineReview from '@/components/outline/InteractiveOutlineReview'
@@ -198,8 +200,9 @@ function extractIndustryFromDescription(description: string): string {
 }
 
 export default function AIBuilder() {
-  const [currentStep, setCurrentStep] = useState('startup-input')
+  const [currentStep, setCurrentStep] = useState('template-selection')
   const [selectedMode, setSelectedMode] = useState('generate')
+  const [selectedTemplate, setSelectedTemplate] = useState<DeckTemplate | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedOutline, setGeneratedOutline] = useState<PitchDeckOutline | null>(null)
   const [generatedDeck, setGeneratedDeck] = useState<GeneratedDeck | null>(null)
@@ -348,8 +351,18 @@ export default function AIBuilder() {
     setCurrentStep('theme')
   }
 
+  const handleTemplateSelect = (template: DeckTemplate) => {
+    setSelectedTemplate(template)
+    setCurrentStep('startup-input')
+  }
+
   const handleNext = () => {
     switch (currentStep) {
+      case 'template-selection':
+        if (selectedTemplate) {
+          setCurrentStep('startup-input')
+        }
+        break
       case 'startup-input':
         generateAIQuestions()
         break
@@ -393,6 +406,12 @@ export default function AIBuilder() {
 
   const handlePrevious = () => {
     switch (currentStep) {
+      case 'startup-input':
+        setCurrentStep('template-selection')
+        break
+      case 'questions':
+        setCurrentStep('startup-input')
+        break
       case 'topic':
         setCurrentStep('mode')
         break
@@ -916,6 +935,9 @@ export default function AIBuilder() {
 
   const getStepTitle = () => {
     switch (currentStep) {
+      case 'template-selection': return 'Choose Your Template'
+      case 'startup-input': return 'Tell us about your startup'
+      case 'questions': return 'Let\'s Build Your Pitch Deck'
       case 'mode': return 'Choose Creation Mode'
       case 'topic': return 'Tell us about your startup'
       case 'outline': return 'Review your outline'
@@ -928,6 +950,9 @@ export default function AIBuilder() {
 
   const getStepDescription = () => {
     switch (currentStep) {
+      case 'template-selection': return 'Start with a proven template used by successful startups to raise funding'
+      case 'startup-input': return 'Help our AI understand your business so we can create a pitch deck that stands out.'
+      case 'questions': return 'Review the AI-generated questions and answers. Accept, edit, or delete as needed.'
       case 'mode': return 'How would you like to create your pitch deck?'
       case 'topic': return 'Help our AI understand your business so we can create a pitch deck that stands out.'
       case 'outline': return 'AI has created an outline based on your input'
@@ -937,6 +962,24 @@ export default function AIBuilder() {
       default: return ''
     }
   }
+
+  const renderTemplateSelection = () => (
+    <motion.div
+      className="max-w-7xl mx-auto"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+    >
+      <TemplateSelector
+        onTemplateSelect={handleTemplateSelect}
+        userContext={{
+          industry: formData.industry || 'Technology',
+          fundingStage: formData.stage || 'seed',
+          experience: 'beginner'
+        }}
+      />
+    </motion.div>
+  )
 
   const renderModeSelection = () => (
     <motion.div
@@ -1580,6 +1623,15 @@ export default function AIBuilder() {
                 )}
               </Button>
               
+              <Button
+                variant="outline"
+                onClick={handlePrevious}
+                className="px-6 py-2 border-white/20 hover:bg-white/10"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Templates
+              </Button>
+              
               {isGeneratingQuestions && (
                 <motion.p
                   initial={{ opacity: 0 }}
@@ -1729,6 +1781,8 @@ export default function AIBuilder() {
 
   const renderCurrentStep = () => {
     switch (currentStep) {
+      case 'template-selection':
+        return renderTemplateSelection()
       case 'startup-input':
         return renderStartupInput()
       case 'questions':
@@ -1750,7 +1804,7 @@ export default function AIBuilder() {
       case 'customize':
         return renderCustomization()
       default:
-        return renderStartupInput()
+        return renderTemplateSelection()
     }
   }
 
