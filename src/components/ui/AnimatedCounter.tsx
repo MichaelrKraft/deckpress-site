@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { motion, useAnimation, useInView } from 'framer-motion'
 
 interface AnimatedCounterProps {
@@ -12,7 +12,7 @@ interface AnimatedCounterProps {
   className?: string
 }
 
-export function AnimatedCounter({ 
+export const AnimatedCounter = React.memo(function AnimatedCounter({ 
   from, 
   to, 
   duration = 2, 
@@ -21,26 +21,40 @@ export function AnimatedCounter({
   className = ''
 }: AnimatedCounterProps) {
   const [count, setCount] = useState(from)
-  const controls = useAnimation()
-  const ref = React.useRef(null)
+  const ref = useRef(null)
   const inView = useInView(ref, { once: true })
+  const animationRef = useRef<number>()
 
   useEffect(() => {
     if (inView) {
-      const increment = (to - from) / (duration * 60) // 60fps
-      let currentCount = from
-      
-      const timer = setInterval(() => {
-        currentCount += increment
-        if (currentCount >= to) {
-          setCount(to)
-          clearInterval(timer)
-        } else {
-          setCount(Math.floor(currentCount))
-        }
-      }, 1000 / 60)
+      const startTime = Date.now()
+      const startValue = from
+      const totalChange = to - from
+      const animationDuration = duration * 1000
 
-      return () => clearInterval(timer)
+      const animate = () => {
+        const elapsed = Date.now() - startTime
+        const progress = Math.min(elapsed / animationDuration, 1)
+        
+        const easeOutQuart = 1 - Math.pow(1 - progress, 4)
+        const currentValue = startValue + (totalChange * easeOutQuart)
+        
+        setCount(Math.floor(currentValue))
+        
+        if (progress < 1) {
+          animationRef.current = requestAnimationFrame(animate)
+        } else {
+          setCount(to)
+        }
+      }
+      
+      animationRef.current = requestAnimationFrame(animate)
+      
+      return () => {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current)
+        }
+      }
     }
   }, [inView, from, to, duration])
 
@@ -55,4 +69,4 @@ export function AnimatedCounter({
       {prefix}{count.toLocaleString()}{suffix}
     </motion.span>
   )
-}
+})
